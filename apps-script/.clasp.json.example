@@ -1,0 +1,9 @@
+{
+  "scriptId": "COLOQUE_AQUI_O_SCRIPT_ID",
+  "rootDir": "",
+  "scriptExtensions": [".js", ".gs"],
+  "htmlExtensions": [".html"],
+  "jsonExtensions": [".json"],
+  "filePushOrder": ["Rotacao.js", "Codigo.js"],
+  "skipSubdirectories": false
+}

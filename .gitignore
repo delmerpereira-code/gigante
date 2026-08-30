@@ -1,0 +1,12 @@
+# clasp — credenciais e config local
+.clasp.json
+.clasprc.json
+apps-script/.clasp.json
+
+# node
+node_modules/
+
+# sistema
+.DS_Store
+Thumbs.db
+*.log
