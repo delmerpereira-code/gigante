@@ -11,7 +11,8 @@
     ['credito_sobreaviso', 'Crédito de sobreaviso não acionado (por hora)', 'number'],
     ['dias_ferias_padrao', 'Dias de férias por ano (padrão)', 'number'],
     ['antecedencia_ferias_dias', 'Antecedência mínima p/ comunicar férias (dias)', 'number'],
-    ['permuta_prazo_horas', 'Prazo da permuta antes do turno (horas)', 'number']
+    ['permuta_prazo_horas', 'Prazo da permuta antes do turno (horas)', 'number'],
+    ['lotacao', 'Lotação (aparece no termo de permuta)', 'text']
   ];
 
   function montar(corpo) {
@@ -22,7 +23,7 @@
     var card = A.h('div', { class: 'card' });
     card.innerHTML = '<h3>Parâmetros</h3><div class="form">' +
       CAMPOS.map(function (c) {
-        return '<div class="campo' + (c[0] === 'ordem_rotacao' ? ' wide' : '') + '"><label>' + c[1] + '</label>' +
+        return '<div class="campo' + ((c[0] === 'ordem_rotacao' || c[0] === 'lotacao') ? ' wide' : '') + '"><label>' + c[1] + '</label>' +
           '<input type="' + c[2] + '" id="cf-' + c[0] + '" value="' + A.esc(cfg[c[0]]) + '"' + (c[2] === 'number' ? ' step="0.25"' : '') + '></div>';
       }).join('') +
       '</div><div class="card-acoes"><button class="pri" id="cf-salvar">Salvar parâmetros</button><span class="ok-msg" id="cf-msg"></span></div>';

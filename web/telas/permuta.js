@@ -185,23 +185,64 @@
     function termo(id) {
       var p = S.permutaPorId(id); if (!p) return;
       var Ap = S.funcionarioPorNome(p.pessoa_a) || {}, Bp = S.funcionarioPorNome(p.pessoa_b) || {};
-      function tt(dt, pt, i, f) { return 'o turno ' + pt + ' do dia ' + fmtD(dt) + ' (das ' + fmtH(i) + ' às ' + fmtH(f) + ')'; }
-      var corpo = '<p>A PARTE A transfere à PARTE B ' + tt(p.turno_a_data, p.turno_a_parte, p.turno_a_inicio, p.turno_a_fim) + '.</p>';
-      corpo += p.mao_dupla === 'sim'
-        ? '<p>Em contrapartida, a PARTE B transfere à PARTE A ' + tt(p.turno_b_data, p.turno_b_parte, p.turno_b_inicio, p.turno_b_fim) + '. Sem saldo de horas.</p>'
-        : '<p>Permuta de mão única: a PARTE A fica devendo <b>12 horas</b> à PARTE B.</p>';
-      A.abrirModal('<h2>Termo de permuta</h2><div class="termo">' +
-        '<h2>TERMO DE PERMUTA DE PLANTÃO</h2><p style="text-align:center">Nº ' + p.numero + '</p>' +
-        '<p><i>Texto provisório.</i></p>' +
-        '<p><b>PARTE A:</b> ' + A.esc(Ap.nome_completo || p.pessoa_a) + ' — Matrícula ' + A.esc(Ap.matricula || '—') + ' — ' + A.esc(Ap.plantao || '—') + '</p>' +
-        '<p><b>PARTE B:</b> ' + A.esc(Bp.nome_completo || p.pessoa_b) + ' — Matrícula ' + A.esc(Bp.matricula || '—') + ' — ' + A.esc(Bp.plantao || '—') + '</p>' +
-        corpo + (p.obs ? '<p><b>Obs:</b> ' + A.esc(p.obs) + '</p>' : '') +
-        '<p style="margin-top:24px">Aprovação da chefia: __________________  Data: ___/___/____</p>' +
-        '<p style="margin-top:32px;display:flex;justify-content:space-around;text-align:center">' +
-        '<span>____________<br>' + A.esc(p.pessoa_a) + '</span><span>____________<br>' + A.esc(p.pessoa_b) + '</span></p></div>' +
-        '<div class="modal-acoes"><button class="btn sec" id="t-x">Fechar</button><button class="btn" id="t-p">Imprimir</button></div>');
+      var docs = formOficial(Ap, Bp, p.turno_a_data, p.turno_a_parte, p);
+      if (p.mao_dupla === 'sim' && p.turno_b_inicio) {
+        docs += '<div class="quebra-pagina"></div>' + formOficial(Bp, Ap, p.turno_b_data, p.turno_b_parte, p);
+      }
+      A.abrirModal('<div class="no-print modal-acoes" style="margin:0 0 12px">' +
+        '<button class="btn sec" id="t-x">Fechar</button><button class="btn" id="t-p">Imprimir / PDF</button></div>' +
+        '<div class="termo-doc">' + docs + '</div>');
       document.getElementById('t-x').addEventListener('click', A.fecharModal);
       document.getElementById('t-p').addEventListener('click', function () { window.print(); });
+    }
+
+    var CARGO_L = { investigador: 'Investigador de Polícia', delegado: 'Delegado de Polícia', diretor: 'Diretor', administrador: 'Administrador' };
+    var PLNUM = { 'PL I': 1, 'PL II': 2, 'PL III': 3, 'PL IV': 4, 'PL V': 5 };
+    var MESEXT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+    function box(v) { return '<span class="cx">(' + (v ? ' X ' : '&nbsp;&nbsp;&nbsp;') + ')</span>'; }
+    function lin(v) { return '<u>&nbsp;' + A.esc(v || '') + '&nbsp;</u>'; }
+    function plCaixas(pl, comExp) {
+      var n = PLNUM[pl] || 0;
+      var s = '';
+      for (var i = 1; i <= 5; i++) s += box(n === i) + 'P' + i + '&nbsp;&nbsp;';
+      if (comExp) s += box(!n) + 'EXPEDIENTE';
+      return s;
+    }
+    function bloco(f, tit) {
+      return '<p class="sec">' + tit + '</p>' +
+        '<p class="fld">' + lin(f.nome_completo || f.nome_curto || '') + '</p>' +
+        '<p class="fld"><b>CARGO:</b> ' + lin(CARGO_L[f.cargo] || f.cargo || '') +
+          ' &nbsp;&nbsp; <b>MATRÍCULA:</b> ' + lin(f.matricula || '') + '</p>' +
+        '<p class="fld"><b>LOTAÇÃO:</b> ' + lin(S.config('lotacao') || '') + '</p>' +
+        '<p class="fld"><b>NÚMERO DO PLANTÃO:</b> ' + plCaixas(f.plantao, tit.indexOf('SUBSTITUTO') >= 0) + '</p>' +
+        '<p class="fld"><b>CELULAR:</b> ' + lin(f.celular || '') + '</p>';
+    }
+    function formOficial(sub, subst, dataIso, parte, p) {
+      var hoje = new Date();
+      var dp = String(dataIso).slice(0, 10).split('-');
+      return '<div class="termo-oficial">' +
+        '<p class="cab">EXCELENTÍSSIMO SENHOR DIRETOR DO DEPARTAMENTO DE ATIVIDADES POLICIAIS</p>' +
+        '<p class="just">Os(As) Servidores(as) abaixo qualificados(as) vêm, à presença de Vossa Excelência, ' +
+        'nos Termos do Direito Público, assegurados no artigo 155 e seguintes, da Lei nº 2271/94 – Estatuto ' +
+        'do Policial Civil do Amazonas, requerer <b>PERMUTA DE PLANTÃO</b>:</p>' +
+        '<p class="dt"><b>DATA DA PERMUTA:</b> ' + lin(dp[2] ? dp[2] + '/' + dp[1] + '/' + dp[0] : '') + ' &nbsp; ' +
+          box(parte === 'diurno') + ' 8h às 20h &nbsp;&nbsp; ' + box(parte === 'noturno') + ' 20h às 8h</p>' +
+        bloco(sub, 'NOME DO REQUERENTE A SER SUBSTITUÍDO (QUEM SERÁ SUBSTITUÍDO):') +
+        bloco(subst, 'NOME DO REQUERENTE SUBSTITUTO:') +
+        '<p class="ped">Nestes Termos, pede Deferimento. &nbsp; Manaus, ' + lin('' + hoje.getDate()) +
+          ' de ' + lin(MESEXT[hoje.getMonth()]) + ' de ' + lin('' + hoje.getFullYear()) + '.</p>' +
+        (p.obs ? '<p class="fld"><b>Observação:</b> ' + A.esc(p.obs) + '</p>' : '') +
+        '<div class="assin">' +
+          '<div>_____________________________________<br>ASSINATURA DO REQUERENTE A SER SUBSTITUÍDO<br>' +
+            '_____________________________________<br>ASSINATURA DO REQUERENTE SUBSTITUTO</div>' +
+          '<div class="ciente">Ciente:<br><br><br>_____________________________<br>DIRETOR DO DEPARTAMENTO<br>(carimbo e assinatura)</div>' +
+        '</div>' +
+        '<p class="obs"><b>OBS1:</b> PEDIDOS DE PERMUTA DE PLANTÃO DEVERÃO SER FEITOS NO PRAZO MÍNIMO DE 2 DIAS ÚTEIS DE ANTECEDÊNCIA À DATA DO PLANTÃO.</p>' +
+        '<p class="obs"><b>OBS2:</b> NÃO SERÃO ACEITOS PEDIDOS DE PERMUTA DE PLANTÃO ENVIADOS POR E-MAIL.</p>' +
+        '<p class="rodape">CENTRO INTEGRADO DE COMANDO E CONTROLE · Avenida André Araújo · Fone: (92) 3612-3122 · ' +
+          'Manaus – AM – CEP 69067-375 · Departamento de Atividades Policiais &nbsp; | &nbsp; ' + p.numero + '</p>' +
+        '</div>';
     }
 
     ['#p-a', '#p-b'].forEach(function (s) { $(s).addEventListener('change', s === '#p-a' ? atualB : function () { $('#p-lb').textContent = $('#p-b').value; turnos(); }); });

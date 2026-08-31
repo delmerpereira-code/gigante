@@ -116,7 +116,8 @@
     dias_ferias_padrao: '30',
     antecedencia_ferias_dias: '30',
     permuta_prazo_horas: '12',
-    comunicado: ''
+    comunicado: '',
+    lotacao: 'Departamento de Atividades Policiais'
   };
 
   function config(chave) {
@@ -729,12 +730,21 @@
   // conta entre funcionários (livro próprio) --------------------------------
   function aplicarContaPermuta(p) {
     removerContaPermuta(p.id);
-    if (p.mao_dupla === 'sim') return; // troca de dia: zera, sem dívida
-    var horas = Math.round((new Date(p.turno_a_fim) - new Date(p.turno_a_inicio)) / 3600000);
+    // perna 1: A passou o turno, B cobriu → A deve as horas a B
+    var hA = Math.round((new Date(p.turno_a_fim) - new Date(p.turno_a_inicio)) / 3600000);
     _db.ContaPermutas.push({
       data: new Date().toISOString(), de: p.pessoa_a, para: p.pessoa_b,
-      horas: horas, tipo: 'divida', permuta_id: p.id, obs: p.numero
+      horas: hA, tipo: 'divida', permuta_id: p.id,
+      obs: p.numero + (p.mao_dupla === 'sim' ? ' (turno de ' + p.pessoa_a + ')' : '')
     });
+    // perna 2 (mão dupla): B passou o turno, A cobriu → B deve as horas a A
+    if (p.mao_dupla === 'sim' && p.turno_b_inicio) {
+      var hB = Math.round((new Date(p.turno_b_fim) - new Date(p.turno_b_inicio)) / 3600000);
+      _db.ContaPermutas.push({
+        data: new Date().toISOString(), de: p.pessoa_b, para: p.pessoa_a,
+        horas: hB, tipo: 'divida', permuta_id: p.id, obs: p.numero + ' (turno de ' + p.pessoa_b + ')'
+      });
+    }
   }
   function removerContaPermuta(permutaId) {
     _db.ContaPermutas = _db.ContaPermutas.filter(function (r) { return r.permuta_id !== permutaId; });
