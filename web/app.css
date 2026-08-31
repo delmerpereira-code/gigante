@@ -102,13 +102,49 @@ a { color: var(--accent); }
 .muted { color: var(--text2); }
 .small { font-size: 12px; }
 
-/* ── home / cartões de módulo ─────────────────────────────────────────── */
-#tela-home { background: linear-gradient(145deg, #D6ECEC, #EDF6F0); }
-.home-topo { padding: 28px 24px 10px; }
-.home-oi { font-family: var(--mono); font-size: 11px; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; }
-.home-nome { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent); }
-.home-papel { font-size: 12px; color: var(--text2); margin-top: 2px; }
-.home-cards { padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+/* ── home / painel ────────────────────────────────────────────────────── */
+#tela-home { background: #EDF6F4; }
+.home-topo { padding: 18px 16px 6px; background: var(--accent); padding-top: calc(18px + env(safe-area-inset-top)); }
+.home-topo-linha { display: flex; align-items: center; gap: 12px; }
+.home-foto {
+  width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  background: #fff; border: 2px solid rgba(255,255,255,0.5);
+}
+.home-foto img { width: 100%; height: 100%; object-fit: cover; }
+.home-foto.vazia { display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 700; font-size: 20px; color: var(--accent); }
+.home-nome { font-family: var(--mono); font-size: 15px; font-weight: 700; color: #fff; }
+.home-papel { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+.home-vercomo { margin-left: auto; font-size: 10px; color: rgba(255,255,255,0.8); font-family: var(--mono);
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-end; }
+.home-vercomo select { font: inherit; font-size: 11px; padding: 3px 6px; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.12); color: #fff; }
+
+.home-sec { padding: 12px 16px 0; }
+.home-sec:last-of-type { padding-bottom: 16px; }
+.home-sec-tit { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text2); margin-bottom: 8px; }
+
+.comunicado { background: #fff0ee; border-left: 3px solid var(--danger); border-radius: 10px; padding: 12px 14px; }
+.comunicado.vazio { background: var(--surface2); border-left-color: var(--border); }
+.comunicado-tit { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--danger); margin-bottom: 4px; }
+.comunicado.vazio .comunicado-tit { color: var(--text2); }
+.comunicado-txt { font-size: 14px; line-height: 1.5; color: var(--text); }
+.comunicado-txt i { color: var(--text2); }
+
+.rs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (min-width: 560px) { .rs-grid { grid-template-columns: repeat(4, 1fr); } }
+.rs-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 3px; }
+.rs-tile:active { border-color: var(--accent); }
+.rs-rot { font-family: var(--mono); font-size: 10px; letter-spacing: .5px; text-transform: uppercase; color: var(--text2); }
+.rs-val { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--accent); }
+.rs-val small { font-size: 11px; font-weight: 400; color: var(--text2); }
+.rs-val .pos { color: var(--success); } .rs-val .neg { color: var(--danger); }
+.rs-sub { font-size: 11px; color: var(--text2); }
+
+.home-cards { display: flex; flex-direction: column; gap: 10px; }
 .mod-card {
   background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px;
   padding: 16px 18px; display: flex; align-items: center; gap: 16px; text-align: left; width: 100%;

@@ -85,7 +85,7 @@
         if (k === 'class') e.className = attrs[k];
         else if (k === 'html') e.innerHTML = attrs[k];
         else if (k === 'text') e.textContent = attrs[k];
-        else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), attrs[k]);
+        else if (k.slice(0, 2) === 'on') { if (attrs[k]) e.addEventListener(k.slice(2), attrs[k]); }
         else if (attrs[k] != null) e.setAttribute(k, attrs[k]);
       }
       (filhos || []).forEach(function (f) { if (f) e.appendChild(typeof f === 'string' ? document.createTextNode(f) : f); });
@@ -96,47 +96,121 @@
   };
   root.App = App;
 
-  // ─── HOME ────────────────────────────────────────────────────────────────
+  // ─── HOME (painel) ──────────────────────────────────────────────────────
+  function saudacao() {
+    var h = new Date().getHours();
+    return h < 12 ? 'bom dia' : (h < 18 ? 'boa tarde' : 'boa noite');
+  }
+  var MES3 = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  var DOW3 = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+  function proximoTurno(f) {
+    if (!f || f.regime !== 'plantao' || !f.plantao || !root.Rotacao) return null;
+    var ts = root.Rotacao.proximosTurnos(f.plantao, new Date(), 1, root.Store.rotacaoConfig());
+    if (!ts.length) return null;
+    var t = ts[0], d = new Date(t.inicio);
+    return DOW3[d.getDay()] + ' ' + ('0' + d.getDate()).slice(-2) + '/' + MES3[d.getMonth()] +
+      ' · ' + (t.parte === 'diurno' ? 'diurno' : 'noturno');
+  }
+
+  function tile(rotulo, valor, sub, modulo) {
+    var el = App.h('button', { class: 'rs-tile', onclick: modulo ? function () { App.abrirModulo(modulo); } : null }, [
+      App.h('span', { class: 'rs-rot', text: rotulo }),
+      App.h('span', { class: 'rs-val', html: valor }),
+      sub ? App.h('span', { class: 'rs-sub', text: sub }) : null
+    ]);
+    return el;
+  }
+
   function renderHome() {
     var S = root.Store;
-    var papel = S.papelAtual();
     var lider = S.ehLider();
     var modoBanco = root.Sync && Sync.modo === 'db';
-    var eu = modoBanco && Sync.eu ? Sync.eu() : null;
+    var eu = (modoBanco && Sync.eu ? Sync.eu() : null) ||
+      (S.papelAtual().tipo === 'funcionario' ? S.funcionarioPorNome(S.papelAtual().nome) : null);
+    var nome = eu ? eu.nome_curto : 'Líder';
 
-    $('home-nome').textContent = eu ? eu.nome_curto : (papel.tipo === 'lider' ? 'Líder' : papel.nome);
+    // saudação + foto
+    $('home-nome').textContent = 'Olá, ' + nome + ' — ' + saudacao();
     var subs = [];
     if (eu) subs.push({ investigador: 'Investigador', delegado: 'Delegado', diretor: 'Diretor' }[eu.cargo] || eu.cargo);
-    if (lider) subs.push('acesso de líder');
+    if (eu && eu.plantao) subs.push(eu.plantao);
+    if (lider) subs.push('líder');
     $('home-papel').textContent = subs.join(' · ');
-
-    var wrap = $('home-cards');
-    wrap.innerHTML = '';
+    var fb = $('home-foto');
+    fb.innerHTML = (eu && eu.foto) ? '<img src="' + eu.foto + '">' : (nome.charAt(0));
+    fb.className = 'home-foto' + ((eu && eu.foto) ? '' : ' vazia');
 
     // "Ver como" — só líder
+    var vc = $('home-vercomo');
     if (lider) {
       var pessoas = S.funcionarios().slice().sort(function (a, b) { return a.nome_curto.localeCompare(b.nome_curto); });
-      var sel = App.h('select', { class: 'in', style: 'margin-bottom:6px' }, []);
-      sel.innerHTML = '<option value="Lider">Ver como: Líder</option>' +
-        pessoas.map(function (f) { return '<option value="' + App.esc(f.nome_curto) + '">Ver como: ' + App.esc(f.nome_curto) + '</option>'; }).join('');
+      vc.hidden = false;
+      vc.innerHTML = 'Ver como <select id="vcSel"><option value="Lider">Líder</option>' +
+        pessoas.map(function (f) { return '<option value="' + App.esc(f.nome_curto) + '">' + App.esc(f.nome_curto) + '</option>'; }).join('') + '</select>';
+      var sel = vc.querySelector('#vcSel');
       sel.value = S.verComo() || 'Lider';
       sel.addEventListener('change', function () { S.setVerComo(sel.value); renderHome(); });
-      wrap.appendChild(sel);
+    } else vc.hidden = true;
+
+    // comunicado
+    var com = $('home-comunicado');
+    var txt = S.config('comunicado') || '';
+    com.innerHTML = '';
+    if (txt || lider) {
+      var box = App.h('div', { class: 'comunicado' + (txt ? '' : ' vazio') });
+      box.innerHTML = '<div class="comunicado-tit">Comunicado' +
+        (lider ? ' <button class="link" id="comEdit">editar</button>' : '') + '</div>' +
+        '<div class="comunicado-txt">' + (txt ? App.esc(txt).replace(/\n/g, '<br>') : '<i>sem comunicado</i>') + '</div>';
+      com.appendChild(box);
+      var be = box.querySelector('#comEdit');
+      if (be) be.addEventListener('click', function () { editarComunicado(txt); });
     }
 
-    Object.keys(telas).forEach(function (nome) {
-      var t = telas[nome];
-      if (t.acesso === 'lider' && !lider) return;
-      var n = t.contador ? t.contador() : null;
-      var card = App.h('button', { class: 'mod-card', onclick: function () { App.abrirModulo(nome); } }, [
-        App.h('span', { class: 'ic', text: t.icone }),
-        App.h('span', {}, [
-          App.h('span', { class: 'nome', text: t.titulo }),
-          App.h('span', { class: 'desc', text: t.desc })
-        ]),
-        (n ? App.h('span', { class: 'badge-n', text: String(n) }) : null)
+    // resumo (só se for uma pessoa)
+    var rs = $('home-resumo');
+    rs.innerHTML = '';
+    if (eu) {
+      var sf = S.saldoFerias(nome);
+      var contas = S.contasDe(nome);
+      var credito = 0, debito = 0;
+      contas.forEach(function (c) { if (c.saldo > 0) debito += c.saldo; else credito += -c.saldo; });
+      var pt = proximoTurno(eu);
+      rs.appendChild(App.h('div', { class: 'home-sec-tit', text: 'Resumo' }));
+      var grid = App.h('div', { class: 'rs-grid' }, [
+        tile('Férias', sf.restante + '<small> dias</small>', sf.consumido + ' marcados', 'ferias'),
+        tile('Permutas', '<span class="pos">+' + credito + '</span> / <span class="neg">−' + debito + '</span>', 'crédito / débito (h)', 'permuta'),
+        tile('Banco de horas', (S.saldoDe(nome)) + '<small> h</small>', null, 'banco'),
+        tile('Próximo plantão', pt ? pt.split(' · ')[0] : '—', pt ? pt.split(' · ')[1] : (eu.plantao ? '' : 'sem plantão'), 'escala')
       ]);
-      wrap.appendChild(card);
+      rs.appendChild(grid);
+    }
+
+    // módulos
+    var wrap = $('home-cards');
+    wrap.innerHTML = '';
+    Object.keys(telas).forEach(function (n) {
+      var t = telas[n];
+      if (t.acesso === 'lider' && !lider) return;
+      var badge = t.contador ? t.contador() : null;
+      wrap.appendChild(App.h('button', { class: 'mod-card', onclick: function () { App.abrirModulo(n); } }, [
+        App.h('span', { class: 'ic', text: t.icone }),
+        App.h('span', {}, [App.h('span', { class: 'nome', text: t.titulo }), App.h('span', { class: 'desc', text: t.desc })]),
+        (badge ? App.h('span', { class: 'badge-n', text: String(badge) }) : null)
+      ]));
+    });
+  }
+
+  function editarComunicado(atual) {
+    var m = App.abrirModal('<h2>Comunicado</h2>' +
+      '<div class="campo"><label>Mensagem para todos (deixe vazio para remover)</label>' +
+      '<textarea id="com-t" rows="5"></textarea></div>' +
+      '<div class="modal-acoes"><button class="btn sec" id="com-x">Cancelar</button><button class="btn" id="com-ok">Salvar</button></div>');
+    m.querySelector('#com-t').value = atual || '';
+    m.querySelector('#com-x').addEventListener('click', App.fecharModal);
+    m.querySelector('#com-ok').addEventListener('click', function () {
+      Promise.resolve(root.Store.setConfig('comunicado', m.querySelector('#com-t').value.trim()))
+        .then(function () { App.fecharModal(); renderHome(); App.toast('Comunicado salvo', 'sucesso'); });
     });
   }
 
@@ -206,14 +280,19 @@
       }).catch(function () {});
     }
     var deferido = null;
-    window.addEventListener('beforeinstallprompt', function (e) {
-      e.preventDefault(); deferido = e; $('btn-instalar').classList.add('on');
-    });
-    $('btn-instalar').addEventListener('click', function () {
+    function instalar() {
       if (!deferido) return;
       deferido.prompt();
-      deferido.userChoice.then(function () { deferido = null; $('btn-instalar').classList.remove('on'); });
+      deferido.userChoice.then(function () {
+        deferido = null;
+        ['btn-instalar', 'btn-instalar2'].forEach(function (id) { var b = $(id); if (b) b.classList.remove('on'); });
+      });
+    }
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault(); deferido = e;
+      ['btn-instalar', 'btn-instalar2'].forEach(function (id) { var b = $(id); if (b) b.classList.add('on'); });
     });
+    ['btn-instalar', 'btn-instalar2'].forEach(function (id) { var b = $(id); if (b) b.addEventListener('click', instalar); });
 
     // já logado? (sessão persistida) → entra direto
     if (root.DB && DB.configurado) {

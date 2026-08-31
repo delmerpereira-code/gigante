@@ -115,7 +115,8 @@
     credito_sobreaviso: '0',
     dias_ferias_padrao: '30',
     antecedencia_ferias_dias: '30',
-    permuta_prazo_horas: '12'
+    permuta_prazo_horas: '12',
+    comunicado: ''
   };
 
   function config(chave) {
