@@ -217,26 +217,28 @@
     function qualificacao(f, comExp) {
       var n = PLNUM[f.plantao] || 0, o = {};
       for (var i = 1; i <= 5; i++) o['p' + i] = xis(n === i);
-      o.exp = comExp ? xis(!n) : '';
+      o.exp = comExp && !n ? 'X' : '';
       o.nome = f.nome_completo || f.nome_curto || '';
       o.cargo = CARGO_L[f.cargo] || f.cargo || '';
       o.matricula = f.matricula || '';
       o.lotacao = S.config('lotacao') || '';
       o.celular = f.celular || '';
+      o.plantao = n ? 'P' + n : (comExp ? 'EXPEDIENTE' : (f.plantao || ''));
       return o;
     }
     function dadosDoc(sub, subst, dataIso, parte, p) {
       var hoje = new Date(), dp = String(dataIso).slice(0, 10).split('-');
       var s = qualificacao(sub, false), t = qualificacao(subst, true);
+      var dia = String(hoje.getDate()), mes = MESEXT[hoje.getMonth()], ano = String(hoje.getFullYear());
       var d = {
         numero: p.numero,
         obs: p.obs || '',
         data_permuta: dp[2] ? dp[2] + '/' + dp[1] + '/' + dp[0] : '',
         turno_diurno: xis(parte === 'diurno'),
         turno_noturno: xis(parte === 'noturno'),
-        manaus_dia: String(hoje.getDate()),
-        manaus_mes: MESEXT[hoje.getMonth()],
-        manaus_ano: String(hoje.getFullYear())
+        turno_NOTURNO: xis(parte === 'noturno'),
+        dia: dia, mes_completo: mes, ano: ano,
+        manaus_dia: dia, manaus_mes: mes, manaus_ano: ano
       };
       Object.keys(s).forEach(function (k) { d['s_' + k] = s[k]; });
       Object.keys(t).forEach(function (k) { d['t_' + k] = t[k]; });
@@ -274,9 +276,15 @@
           A.toast('Word gerado', 'sucesso');
         })
         .catch(function (e) {
-          if (String(e.message) === 'SEM_MODELO')
+          if (String(e.message) === 'SEM_MODELO') {
             A.toast('Falta o arquivo web/termos/permuta-modelo.docx (veja termos/COMO-CRIAR-O-MODELO.md)', 'erro');
-          else A.toast('Erro ao gerar Word: ' + (e.message || e), 'erro');
+            return;
+          }
+          var det = e && e.properties && e.properties.errors
+            ? e.properties.errors.map(function (x) { return (x.properties && (x.properties.explanation || x.properties.id)) || x.message; }).join(' | ')
+            : (e.message || e);
+          console.error('docxtemplater', e);
+          A.toast('Erro no modelo Word: ' + det, 'erro');
         });
     }
 
