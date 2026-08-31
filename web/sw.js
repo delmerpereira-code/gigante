@@ -1,5 +1,5 @@
 /* Service worker — Controle de Plantão (PWA) */
-const CACHE = 'plantao-v11';
+const CACHE = 'plantao-v12';
 const ASSETS = [
   './', './index.html', './app.css', './app.js', './manifest.json', './icon.svg',
   './rotacao.js', './store.js', './db.js', './sync.js', './foto.js',
@@ -31,9 +31,13 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
     return;
   }
-  // Demais: rede primeiro (pega a versão mais nova), cache como fallback offline
+  // Demais: rede primeiro, ignorando o cache HTTP do navegador (pega sempre a
+  // versão mais nova publicada); cache do SW só como fallback offline.
+  const req = e.request.mode === 'navigate'
+    ? e.request
+    : new Request(e.request.url, { cache: 'reload', credentials: e.request.credentials });
   e.respondWith(
-    fetch(e.request).then(res => {
+    fetch(req).then(res => {
       const clone = res.clone();
       caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
       return res;

@@ -10,7 +10,6 @@
 
   var hoje = new Date();
   var ano = hoje.getFullYear(), mes = hoje.getMonth();
-  var verPassados = false;
 
   function cfg() { return S.rotacaoConfig(); }
   function nomes(pl) {
@@ -34,27 +33,26 @@
     tb.append(
       A.h('button', { text: '◀', onclick: function () { mv(-1); } }), lbl,
       A.h('button', { text: '▶', onclick: function () { mv(1); } }),
-      A.h('button', { text: 'Hoje', onclick: function () { ano = hoje.getFullYear(); mes = hoje.getMonth(); verPassados = false; draw(); } })
+      A.h('button', { text: 'Hoje', onclick: function () { ano = hoje.getFullYear(); mes = hoje.getMonth(); draw(true); } })
     );
     corpo.appendChild(tb);
     var lista = A.h('div', { class: 'lista', style: 'margin-top:12px' });
     corpo.appendChild(lista);
 
-    function mv(d) { mes += d; if (mes < 0) { mes = 11; ano--; } if (mes > 11) { mes = 0; ano++; } verPassados = false; draw(); }
+    function mv(d) { mes += d; if (mes < 0) { mes = 11; ano--; } if (mes > 11) { mes = 0; ano++; } draw(true); }
 
-    function draw() {
+    function draw(irParaHoje) {
       lbl.textContent = MESES[mes] + ' / ' + ano;
       lista.innerHTML = '';
       var C = cfg();
       var total = new Date(ano, mes + 1, 0).getDate();
-      var mesAtual = (ano === hoje.getFullYear() && mes === hoje.getMonth());
-      var pulou = 0;
+      var cardHoje = null;
 
       for (var dia = 1; dia <= total; dia++) {
         var d = new Date(ano, mes, dia);
-        if (mesAtual && !verPassados && meianoite(d) < HOJE0) { pulou++; continue; }
+        var passado = meianoite(d) < HOJE0;
         var t = R.turnosDoDia(d, C);
-        var card = A.h('button', { class: 'dia-card' + (ehHoje(d) ? ' hoje' : ''), 'data-iso': iso(d) });
+        var card = A.h('button', { class: 'dia-card' + (ehHoje(d) ? ' hoje' : (passado ? ' passado' : '')), 'data-iso': iso(d) });
         card.innerHTML =
           '<div class="dia-cab">' + ('0' + dia).slice(-2) + ' · ' + DIAS[d.getDay()] +
             (ehHoje(d) ? ' <span class="tag v">hoje</span>' : '') + '</div>' +
@@ -65,16 +63,11 @@
           estadoModal(new Date(+p[0], +p[1] - 1, +p[2]));
         });
         lista.appendChild(card);
+        if (ehHoje(d)) cardHoje = card;
       }
-
-      if (pulou > 0) {
-        var b = A.h('button', { class: 'btn sec pequeno', text: '↑ ver ' + pulou + ' dia(s) passados', style: 'margin-bottom:10px' });
-        b.addEventListener('click', function () { verPassados = true; draw(); });
-        lista.insertBefore(b, lista.firstChild);
-      }
-      if (!lista.children.length) lista.innerHTML = '<div class="vazio"><div class="txt">Sem dias.</div></div>';
+      if (irParaHoje && cardHoje) setTimeout(function () { cardHoje.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30);
     }
-    draw();
+    draw(true);
   }
   function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 
