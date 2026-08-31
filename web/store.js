@@ -164,7 +164,7 @@
   //  Chave interna: id. Identificador visível: matricula. Exibição: nome_curto.
   var CAMPOS_FUNC = ['id', 'matricula', 'nome_completo', 'nome_curto', 'foto',
     'celular', 'celular2', 'nascimento', 'cargo', 'regime', 'plantao', 'lider',
-    'admissao', 'status', 'saldo_inicial_banco', 'dias_ferias_ano'];
+    'admissao', 'status', 'saldo_inicial_banco', 'dias_ferias_ano', 'auth_user_id'];
   var CARGOS = ['investigador', 'delegado', 'diretor'];
   // campos que o próprio funcionário pode editar (o resto é só do líder)
   var CAMPOS_PESSOAIS = ['nome_completo', 'nome_curto', 'foto', 'celular', 'celular2', 'nascimento'];

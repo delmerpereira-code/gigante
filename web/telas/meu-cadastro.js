@@ -49,6 +49,25 @@
       corpo.appendChild(c);
     }
 
+    if (window.Sync && Sync.modo === 'db' && S.papelAtual().tipo === 'funcionario') {
+      var sc = A.h('div', { class: 'card' });
+      sc.innerHTML = '<h3>Trocar senha</h3>' +
+        '<div class="campo"><label>Nova senha (mín. 6)</label><input type="password" id="sn-1"></div>' +
+        '<div class="campo"><label>Repetir</label><input type="password" id="sn-2"></div>' +
+        '<div class="card-acoes"><button class="pri" id="sn-ok">Trocar</button><span class="erro" id="sn-e"></span><span class="ok-msg" id="sn-o"></span></div>';
+      corpo.appendChild(sc);
+      sc.querySelector('#sn-ok').addEventListener('click', function () {
+        var a = sc.querySelector('#sn-1').value, b = sc.querySelector('#sn-2').value;
+        sc.querySelector('#sn-e').textContent = ''; sc.querySelector('#sn-o').textContent = '';
+        if (a.length < 6) { sc.querySelector('#sn-e').textContent = 'Mínimo 6 caracteres.'; return; }
+        if (a !== b) { sc.querySelector('#sn-e').textContent = 'As senhas não conferem.'; return; }
+        Sync.trocarSenha(a).then(function () {
+          sc.querySelector('#sn-1').value = ''; sc.querySelector('#sn-2').value = '';
+          sc.querySelector('#sn-o').textContent = 'Senha trocada.'; A.toast('Senha trocada', 'sucesso');
+        }).catch(function (e) { sc.querySelector('#sn-e').textContent = e.message || String(e); });
+      });
+    }
+
     var $ = function (s) { return card.querySelector(s); };
     $('#mc-foto').addEventListener('change', function (e) {
       var file = e.target.files[0]; if (!file) return;

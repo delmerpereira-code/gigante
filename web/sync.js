@@ -18,7 +18,9 @@
     modo: 'local',
     iniciar: function () { return Promise.resolve({ logado: true, modo: 'local' }); },
     eu: function () { return null; },
-    sair: function () { return Promise.resolve(); }
+    sair: function () { return Promise.resolve(); },
+    criarLogin: function () { return Promise.reject(new Error('Modo local — sem contas de login.')); },
+    trocarSenha: function () { return Promise.reject(new Error('Modo local — sem contas de login.')); }
   };
   root.Sync = Sync;
 
@@ -58,7 +60,8 @@
       nascimento: d10(f.nascimento), cargo: f.cargo, regime: REGIME_DB[f.regime] || 'externo',
       plantao: f.plantao || '', lider: f.lider === 'sim', admissao: d10(f.admissao),
       status: f.status, saldo_inicial_banco: Number(f.saldo_inicial_banco) || 0,
-      dias_ferias_ano: Number(f.dias_ferias_ano) || 30
+      dias_ferias_ano: Number(f.dias_ferias_ano) || 30,
+      auth_user_id: (f.auth_user_id && uuidValido(f.auth_user_id)) ? f.auth_user_id : null
     };
   }
 
@@ -258,6 +261,8 @@
     return Store.funcionarios().filter(function (f) { return f.auth_user_id === _euAuth.id; })[0] || null;
   };
   Sync.sair = function () { return DB.sair(); };
+  Sync.criarLogin = function (email, senha) { return DB.criarLogin(email, senha); };
+  Sync.trocarSenha = function (nova) { return DB.trocarMinhaSenha(nova); };
 
   Sync.iniciar = function () {
     return DB.sessao().then(function (s) {

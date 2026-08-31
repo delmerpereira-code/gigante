@@ -26,9 +26,11 @@ A `config` já entra preenchida com os padrões.
 
 ## 3. Autenticação
 
-*Authentication → Providers* → deixe **Email** habilitado.
-*Authentication → Sign In / Providers → Email* → desligue **Confirm email**
-(evita ter que confirmar por e-mail cada login criado).
+*Authentication → Sign In / Providers → Email*:
+- **Email** habilitado;
+- **Confirm email** DESLIGADO (senão cada conta precisa confirmar por e-mail);
+- **Enable Sign Ups / Allow new users to sign up** LIGADO — é o que permite o líder
+  criar os logins da equipe direto pela tela **Funcionários** do app.
 
 ### Criar o primeiro líder
 

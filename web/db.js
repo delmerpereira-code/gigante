@@ -40,6 +40,32 @@
     },
     sair: function () { return client ? client.auth.signOut() : Promise.resolve(); },
 
+    /** Troca a senha do usuário logado. */
+    trocarMinhaSenha: function (nova) {
+      if (!client) return Promise.reject(new Error('Supabase não configurado.'));
+      return client.auth.updateUser({ password: nova }).then(function (r) { if (r.error) throw r.error; return r.data; });
+    },
+
+    /**
+     * Cria uma conta de login (e-mail + senha) SEM derrubar a sessão de quem chama
+     * — usa um cliente descartável. Devolve o user_id da conta criada.
+     * Exige "Enable Sign Ups" ligado no Supabase (Auth → Email).
+     */
+    criarLogin: function (email, senha) {
+      if (!client || !root.supabase) return Promise.reject(new Error('Supabase não configurado.'));
+      var tmp = root.supabase.createClient(URL, KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      return tmp.auth.signUp({ email: email, password: senha }).then(function (r) {
+        if (r.error) {
+          var m = r.error.message || String(r.error);
+          if (/already registered|already been registered/i.test(m)) throw new Error('Esse e-mail já tem uma conta.');
+          if (/Signups not allowed|signup is disabled/i.test(m)) throw new Error('Cadastro de contas está desligado no Supabase (Auth → Email → Enable Sign Ups).');
+          throw new Error(m);
+        }
+        if (!r.data || !r.data.user) throw new Error('Não foi possível criar a conta.');
+        return r.data.user.id;
+      });
+    },
+
     /** SELECT * de uma tabela/view (respeitando RLS). */
     all: function (tabela) {
       return client.from(tabela).select('*').then(function (r) {

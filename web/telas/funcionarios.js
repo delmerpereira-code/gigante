@@ -27,6 +27,12 @@
       '<div class="campo"><label>Admissão</label><input type="date" id="fc-adm"></div>' +
       '<div class="campo"><label>Saldo inicial banco (h)</label><input type="number" id="fc-saldo" step="0.5" value="0"></div>' +
       '<div class="campo"><label>Dias de férias/ano</label><input type="number" id="fc-df" value="30"></div>' +
+      '<div class="campo wide" style="border-top:1px solid var(--border);padding-top:12px">' +
+        '<label>Login</label><div id="fc-login-info" class="card-sub" style="margin-bottom:6px"></div>' +
+        '<input type="email" id="fc-email" placeholder="e-mail de acesso" autocomplete="off">' +
+        '<input type="text" id="fc-senha" placeholder="senha inicial (mín. 6)" autocomplete="off" style="margin-top:6px">' +
+        '<div class="card-sub" style="margin-top:4px">A pessoa entra com esse e-mail/senha e troca a senha em "Meu cadastro".</div>' +
+      '</div>' +
       '</div><div class="card-acoes"><button class="pri" id="fc-salvar">Salvar</button><button id="fc-cancelar" hidden>Cancelar</button><span class="erro" id="fc-erro"></span></div>';
     corpo.appendChild(card);
     var listaCard = A.h('div', { class: 'card' });
@@ -38,10 +44,17 @@
       editId = ''; fotoAtual = '';
       card.querySelectorAll('input').forEach(function (i) { i.value = i.id === 'fc-saldo' ? '0' : (i.id === 'fc-df' ? '30' : ''); });
       $('#fc-fbox').textContent = 'sem foto'; $('#fc-tit').textContent = 'Novo funcionário';
-      $('#fc-cancelar').hidden = true; $('#fc-erro').textContent = ''; togglePl();
+      $('#fc-cancelar').hidden = true; $('#fc-erro').textContent = '';
+      $('#fc-login-info').textContent = 'Preencha e-mail + senha para criar o acesso.';
+      $('#fc-email').disabled = false; $('#fc-senha').disabled = false;
+      togglePl();
     }
     function editar(f) {
       editId = f.id; fotoAtual = f.foto || '';
+      var temLogin = !!f.auth_user_id;
+      $('#fc-login-info').textContent = temLogin ? '✓ login já vinculado' : 'Sem login — preencha e-mail + senha para criar.';
+      $('#fc-email').value = ''; $('#fc-senha').value = '';
+      $('#fc-email').disabled = temLogin; $('#fc-senha').disabled = temLogin;
       $('#fc-mat').value = f.matricula || ''; $('#fc-nc').value = f.nome_completo || ''; $('#fc-ns').value = f.nome_curto || '';
       $('#fc-c1').value = f.celular || ''; $('#fc-c2').value = f.celular2 || ''; $('#fc-nasc').value = f.nascimento || '';
       $('#fc-cargo').value = f.cargo; $('#fc-reg').value = f.regime || ''; togglePl(); $('#fc-pl').value = f.plantao || '';
@@ -50,18 +63,36 @@
       $('#fc-fbox').innerHTML = fotoAtual ? '<img src="' + fotoAtual + '">' : 'sem foto';
       $('#fc-tit').textContent = 'Editando: ' + f.nome_curto; $('#fc-cancelar').hidden = false; corpo.scrollTop = 0;
     }
+    function dadosForm(authId) {
+      var d = {
+        id: editId || undefined, matricula: $('#fc-mat').value.trim(), nome_completo: $('#fc-nc').value, nome_curto: $('#fc-ns').value,
+        foto: fotoAtual, celular: $('#fc-c1').value, celular2: $('#fc-c2').value, nascimento: $('#fc-nasc').value,
+        cargo: $('#fc-cargo').value, regime: $('#fc-reg').value, plantao: $('#fc-reg').value === 'plantao' ? $('#fc-pl').value : '',
+        lider: $('#fc-lider').value, status: $('#fc-st').value, admissao: $('#fc-adm').value,
+        saldo_inicial_banco: $('#fc-saldo').value, dias_ferias_ano: $('#fc-df').value
+      };
+      if (authId) d.auth_user_id = authId;
+      return d;
+    }
+    function gravar(authId) {
+      return Promise.resolve(S.salvarFuncionario(dadosForm(authId)))
+        .then(function () { limpar(); render(); A.toast('Salvo', 'sucesso'); });
+    }
     function salvar() {
       $('#fc-erro').textContent = '';
+      var email = $('#fc-email').value.trim(), senha = $('#fc-senha').value;
+      var criarLogin = !$('#fc-email').disabled && email && senha;
       try {
-        Promise.resolve(S.salvarFuncionario({
-          id: editId || undefined, matricula: $('#fc-mat').value.trim(), nome_completo: $('#fc-nc').value, nome_curto: $('#fc-ns').value,
-          foto: fotoAtual, celular: $('#fc-c1').value, celular2: $('#fc-c2').value, nascimento: $('#fc-nasc').value,
-          cargo: $('#fc-cargo').value, regime: $('#fc-reg').value, plantao: $('#fc-reg').value === 'plantao' ? $('#fc-pl').value : '',
-          lider: $('#fc-lider').value, status: $('#fc-st').value, admissao: $('#fc-adm').value,
-          saldo_inicial_banco: $('#fc-saldo').value, dias_ferias_ano: $('#fc-df').value
-        })).then(function () { limpar(); render(); A.toast('Salvo', 'sucesso'); })
-          .catch(function (e) { $('#fc-erro').textContent = e.message || String(e); });
-      } catch (e) { $('#fc-erro').textContent = e.message; }
+        var p;
+        if (criarLogin) {
+          if (senha.length < 6) throw new Error('A senha precisa de pelo menos 6 caracteres.');
+          A.loading(true, 'CRIANDO ACESSO');
+          p = window.Sync.criarLogin(email, senha).then(function (uid) { A.loading(false); return gravar(uid); });
+        } else {
+          p = gravar(null);
+        }
+        p.catch(function (e) { A.loading(false); $('#fc-erro').textContent = e.message || String(e); });
+      } catch (e) { A.loading(false); $('#fc-erro').textContent = e.message; }
     }
     function render() {
       var lista = S.funcionarios().sort(function (a, b) {
@@ -80,7 +111,7 @@
           '<div style="display:flex;gap:10px;align-items:center">' + foto + '<div><b class="card-titulo">' + A.esc(f.nome_curto) + '</b>' +
           (f.lider === 'sim' ? ' ★' : '') + '<div class="card-sub">' + (f.matricula || '—') + ' · ' + (CARGO[f.cargo] || '') + ' · ' + (REGIME[f.regime] != null ? REGIME[f.regime] : '') + (f.plantao ? ' ' + f.plantao : '') + '</div></div></div>' +
           '<span class="tag ' + (f.status === 'ativo' ? 'v' : 'n') + '">' + f.status + '</span></div>' +
-          '<div class="card-sub">Saldo: <b class="' + (s < 0 ? '' : '') + '">' + s + ' h</b></div>' +
+          '<div class="card-sub">Saldo: <b>' + s + ' h</b>' + (f.auth_user_id ? ' · <span class="tag v">com login</span>' : ' · <span class="tag a">sem login</span>') + '</div>' +
           '<div class="card-acoes"><button data-ed>editar</button><button class="dng" data-rm>excluir</button></div>';
         d.querySelector('[data-ed]').addEventListener('click', function () { editar(f); });
         d.querySelector('[data-rm]').addEventListener('click', function () { if (confirm('Excluir "' + f.nome_curto + '"?')) Promise.resolve(S.removerFuncionario(f.id)).then(render); });
