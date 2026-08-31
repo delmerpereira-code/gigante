@@ -55,16 +55,18 @@
     };
   }
   function funcDB(f) {
-    return {
+    var o = {
       id: f.id, matricula: f.matricula || null, nome_completo: f.nome_completo || '',
       nome_curto: f.nome_curto, foto: f.foto || '', email: f.email || '',
       celular: f.celular || '', celular2: f.celular2 || '',
       nascimento: d10(f.nascimento), cargo: f.cargo, regime: REGIME_DB[f.regime] || 'externo',
       plantao: f.plantao || '', lider: f.lider === 'sim', admissao: d10(f.admissao),
       status: f.status, saldo_inicial_banco: Number(f.saldo_inicial_banco) || 0,
-      dias_ferias_ano: Number(f.dias_ferias_ano) || 30,
-      auth_user_id: (f.auth_user_id && uuidValido(f.auth_user_id)) ? f.auth_user_id : null
+      dias_ferias_ano: Number(f.dias_ferias_ano) || 30
     };
+    // só manda auth_user_id quando é um UUID de verdade — nunca sobrescreve com null
+    if (f.auth_user_id && uuidValido(f.auth_user_id)) o.auth_user_id = f.auth_user_id;
+    return o;
   }
 
   function evtCache(r) {

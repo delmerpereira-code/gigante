@@ -215,7 +215,8 @@ create policy func_upd on funcionarios for update to authenticated
 -- trava colunas administrativas quando não é líder
 create or replace function guard_func_update() returns trigger language plpgsql as $$
 begin
-  if not is_lider() then
+  -- só barra funcionário autenticado; SQL admin (sem auth.uid) sempre passa
+  if auth.uid() is not null and not is_lider() then
     if (new.matricula,new.cargo,new.regime,new.plantao,new.lider,new.status,
         new.saldo_inicial_banco,new.dias_ferias_ano,new.auth_user_id)
        is distinct from
