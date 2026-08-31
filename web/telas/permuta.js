@@ -189,11 +189,95 @@
       if (p.mao_dupla === 'sim' && p.turno_b_inicio) {
         docs += '<div class="quebra-pagina"></div>' + formOficial(Bp, Ap, p.turno_b_data, p.turno_b_parte, p);
       }
-      A.abrirModal('<div class="no-print modal-acoes" style="margin:0 0 12px">' +
-        '<button class="btn sec" id="t-x">Fechar</button><button class="btn" id="t-p">Imprimir / PDF</button></div>' +
+      A.abrirModal('<div class="no-print modal-acoes" style="margin:0 0 12px;flex-wrap:wrap">' +
+        '<button class="btn sec" id="t-x">Fechar</button>' +
+        '<button class="btn sec" id="t-p">Imprimir / PDF</button>' +
+        '<button class="btn" id="t-w">Baixar Word (modelo oficial)</button></div>' +
+        '<div class="muted small no-print" style="margin:-4px 0 12px">O Word usa o arquivo oficial <code>web/termos/permuta-modelo.docx</code> — layout idêntico, só os campos preenchidos.</div>' +
         '<div class="termo-doc">' + docs + '</div>');
       document.getElementById('t-x').addEventListener('click', A.fecharModal);
       document.getElementById('t-p').addEventListener('click', function () { window.print(); });
+      document.getElementById('t-w').addEventListener('click', function () { baixarWord(id); });
+    }
+
+    // ── Word: preenche o .docx oficial (docxtemplater) ────────────────────────
+    function loadScript(src) {
+      return new Promise(function (ok, err) {
+        var s = document.createElement('script');
+        s.src = src; s.onload = ok; s.onerror = function () { err(new Error('Falha ao carregar ' + src)); };
+        document.head.appendChild(s);
+      });
+    }
+    function libsDoc() {
+      if ((window.PizZip) && (window.docxtemplater || window.Docxtemplater)) return Promise.resolve();
+      return loadScript('https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.7/pizzip.min.js')
+        .then(function () { return loadScript('https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.44.0/docxtemplater.js'); });
+    }
+    function xis(v) { return v ? 'X' : ''; }
+    function qualificacao(f, comExp) {
+      var n = PLNUM[f.plantao] || 0, o = {};
+      for (var i = 1; i <= 5; i++) o['p' + i] = xis(n === i);
+      o.exp = comExp ? xis(!n) : '';
+      o.nome = f.nome_completo || f.nome_curto || '';
+      o.cargo = CARGO_L[f.cargo] || f.cargo || '';
+      o.matricula = f.matricula || '';
+      o.lotacao = S.config('lotacao') || '';
+      o.celular = f.celular || '';
+      return o;
+    }
+    function dadosDoc(sub, subst, dataIso, parte, p) {
+      var hoje = new Date(), dp = String(dataIso).slice(0, 10).split('-');
+      var s = qualificacao(sub, false), t = qualificacao(subst, true);
+      var d = {
+        numero: p.numero,
+        obs: p.obs || '',
+        data_permuta: dp[2] ? dp[2] + '/' + dp[1] + '/' + dp[0] : '',
+        turno_diurno: xis(parte === 'diurno'),
+        turno_noturno: xis(parte === 'noturno'),
+        manaus_dia: String(hoje.getDate()),
+        manaus_mes: MESEXT[hoje.getMonth()],
+        manaus_ano: String(hoje.getFullYear())
+      };
+      Object.keys(s).forEach(function (k) { d['s_' + k] = s[k]; });
+      Object.keys(t).forEach(function (k) { d['t_' + k] = t[k]; });
+      return d;
+    }
+    function preencher(buf, data, nomeArq) {
+      var Dx = window.docxtemplater || window.Docxtemplater;
+      var doc = new Dx(new window.PizZip(buf), { paragraphLoop: true, linebreaks: true, nullGetter: function () { return ''; } });
+      doc.render(data);
+      var blob = doc.getZip().generate({
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = nomeArq;
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }
+    function baixarWord(id) {
+      var p = S.permutaPorId(id); if (!p) return;
+      var Ap = S.funcionarioPorNome(p.pessoa_a) || {}, Bp = S.funcionarioPorNome(p.pessoa_b) || {};
+      A.toast('Gerando Word…');
+      libsDoc()
+        .then(function () { return fetch('termos/permuta-modelo.docx', { cache: 'reload' }); })
+        .then(function (r) { if (!r.ok) throw new Error('SEM_MODELO'); return r.arrayBuffer(); })
+        .then(function (buf) {
+          var h = new Uint8Array(buf.slice(0, 4));
+          if (!(h[0] === 0x50 && h[1] === 0x4B)) throw new Error('SEM_MODELO'); // não é um .docx (ZIP)
+          preencher(buf, dadosDoc(Ap, Bp, p.turno_a_data, p.turno_a_parte, p), p.numero + '.docx');
+          if (p.mao_dupla === 'sim' && p.turno_b_inicio) {
+            setTimeout(function () {
+              preencher(buf.slice(0), dadosDoc(Bp, Ap, p.turno_b_data, p.turno_b_parte, p), p.numero + '-parte-B.docx');
+            }, 600);
+          }
+          A.toast('Word gerado', 'sucesso');
+        })
+        .catch(function (e) {
+          if (String(e.message) === 'SEM_MODELO')
+            A.toast('Falta o arquivo web/termos/permuta-modelo.docx (veja termos/COMO-CRIAR-O-MODELO.md)', 'erro');
+          else A.toast('Erro ao gerar Word: ' + (e.message || e), 'erro');
+        });
     }
 
     var CARGO_L = { investigador: 'Investigador de Polícia', delegado: 'Delegado de Polícia', diretor: 'Diretor', administrador: 'Administrador' };
