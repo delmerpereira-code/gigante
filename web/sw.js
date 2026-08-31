@@ -1,5 +1,5 @@
 /* Service worker — Controle de Plantão (PWA) */
-const CACHE = 'plantao-v1';
+const CACHE = 'plantao-v3';
 const ASSETS = [
   './', './index.html', './app.css', './app.js', './manifest.json', './icon.svg',
   './rotacao.js', './store.js', './db.js', './sync.js', './foto.js',
@@ -9,6 +9,8 @@ const ASSETS = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap'
 ];
+
+self.addEventListener('message', e => { if (e.data === 'skip') self.skipWaiting(); });
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE)

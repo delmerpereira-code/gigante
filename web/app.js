@@ -189,9 +189,21 @@
     });
     $('modal').addEventListener('click', function (e) { if (e.target === $('modal')) App.fecharModal(); });
 
-    // PWA
+    // PWA — registra e recarrega uma vez quando um SW novo assume
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
+      var recarregou = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (recarregou) return; recarregou = true; location.reload();
+      });
+      navigator.serviceWorker.register('sw.js').then(function (reg) {
+        if (reg.waiting) reg.waiting.postMessage('skip');
+        reg.addEventListener('updatefound', function () {
+          var sw = reg.installing;
+          if (sw) sw.addEventListener('statechange', function () {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) sw.postMessage('skip');
+          });
+        });
+      }).catch(function () {});
     }
     var deferido = null;
     window.addEventListener('beforeinstallprompt', function (e) {
