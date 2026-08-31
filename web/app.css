@@ -323,6 +323,30 @@ table.cal td.folga { background: repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7
 .legenda { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text2); margin: 8px 0 4px; }
 .legenda i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
 
+/* ── escala em calendário ──────────────────────────────────────────── */
+.cal-mes { margin-top: 10px; }
+.cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 3px; }
+.cal-dow span { text-align: center; font-family: var(--mono); font-size: 10px; color: var(--text2); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-cel {
+  aspect-ratio: 1 / 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 1px; overflow: hidden; text-align: left;
+}
+.cal-cel .cd { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
+.cal-cel .ct {
+  font-family: var(--mono); font-size: 10px; font-weight: 700; color: #fff;
+  border-radius: 3px; padding: 0 3px; line-height: 1.5;
+}
+.cal-cel .ct.pl1 { background: var(--pl1); } .cal-cel .ct.pl2 { background: var(--pl2); color: #3a2f00; }
+.cal-cel .ct.pl3 { background: var(--pl3); } .cal-cel .ct.pl4 { background: var(--pl4); } .cal-cel .ct.pl5 { background: var(--pl5); }
+.cal-cel .ct2 { font-family: var(--mono); font-size: 9px; color: var(--text2); }
+.cal-cel.fora { opacity: .35; }
+.cal-cel.passado { opacity: .45; }
+.cal-cel.hoje { border-color: var(--accent); border-width: 2px; box-shadow: 0 0 0 2px rgba(10,110,110,.12); }
+.cal-cel.hoje .cd { color: var(--accent); }
+.legenda i.pl1, .legenda i.pl2, .legenda i.pl3, .legenda i.pl4, .legenda i.pl5 { }
+
 /* estado dos plantões (cards) */
 .est-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .est-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-size: 12px; }
