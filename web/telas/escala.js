@@ -1,4 +1,4 @@
-/* telas/escala.js — escala: lista de dias (de hoje pra frente), diurno/noturno */
+/* telas/escala.js — escala contínua de hoje em diante (diurno/noturno por dia) */
 (function () {
   'use strict';
   var R = window.Rotacao, S = window.Store, A = window.App;
@@ -7,54 +7,66 @@
   var DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   var CLS = { 'PL I': 'pl1', 'PL II': 'pl2', 'PL III': 'pl3', 'PL IV': 'pl4', 'PL V': 'pl5' };
   var ROT = { turno_1: 'trab', turno_2: 'trab', descanso: 'prot', folga: 'prot' };
+  var MS = 864e5;
 
   var hoje = new Date();
-  var ano = hoje.getFullYear(), mes = hoje.getMonth();
+  function m0(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  var HOJE0 = m0(hoje);
+
+  var passados = 0, futuros = 60;   // janela de dias
 
   function cfg() { return S.rotacaoConfig(); }
   function nomes(pl) {
     var d = S.plantoes().filter(function (x) { return x.codigo === pl; })[0] || {};
     return [d.pessoa_1, d.pessoa_2].filter(Boolean).join(' + ') || '—';
   }
-  function meianoite(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
-  var HOJE0 = meianoite(hoje);
   function ehHoje(d) { return d.toDateString() === hoje.toDateString(); }
-
+  function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function pill(pl) {
-    if (!pl) return '<span class="pl-pill vazio">—</span>';
-    return '<span class="pl-pill ' + (CLS[pl] || '') + '">' + pl + '</span>';
+    return pl ? '<span class="pl-pill ' + (CLS[pl] || '') + '">' + pl + '</span>' : '<span class="pl-pill vazio">—</span>';
   }
 
   function montar(corpo) {
     A.acaoHeader('Estado', function () { estadoModal(new Date()); });
 
     var tb = A.h('div', { class: 'tb' });
-    var lbl = A.h('b');
     tb.append(
-      A.h('button', { text: '◀', onclick: function () { mv(-1); } }), lbl,
-      A.h('button', { text: '▶', onclick: function () { mv(1); } }),
-      A.h('button', { text: 'Hoje', onclick: function () { ano = hoje.getFullYear(); mes = hoje.getMonth(); draw(true); } })
+      A.h('b', { text: 'De hoje em diante', style: 'flex:1;font-size:13px' }),
+      A.h('button', { text: '⇧ Hoje', onclick: function () { irHoje(); } })
     );
     corpo.appendChild(tb);
+
     var lista = A.h('div', { class: 'lista', style: 'margin-top:12px' });
     corpo.appendChild(lista);
+    var cardHoje = null;
 
-    function mv(d) { mes += d; if (mes < 0) { mes = 11; ano--; } if (mes > 11) { mes = 0; ano++; } draw(true); }
+    function irHoje() {
+      passados = 0; futuros = Math.max(futuros, 60); draw();
+      if (cardHoje) setTimeout(function () { cardHoje.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30);
+    }
 
-    function draw(irParaHoje) {
-      lbl.textContent = MESES[mes] + ' / ' + ano;
-      lista.innerHTML = '';
+    function draw() {
       var C = cfg();
-      var total = new Date(ano, mes + 1, 0).getDate();
-      var cardHoje = null;
+      lista.innerHTML = '';
+      cardHoje = null;
 
-      for (var dia = 1; dia <= total; dia++) {
-        var d = new Date(ano, mes, dia);
-        var passado = meianoite(d) < HOJE0;
+      if (passados > 0) {
+        lista.appendChild(botao('▲ menos dias passados', function () { passados = Math.max(0, passados - 15); draw(); }));
+      } else {
+        lista.appendChild(botao('▲ ver dias passados', function () { passados += 15; draw(); irScroll(); }));
+      }
+
+      var mesLbl = '';
+      for (var i = -passados; i <= futuros; i++) {
+        var d = new Date(HOJE0.getTime() + i * MS);
+        var ml = MESES[d.getMonth()].toUpperCase() + ' ' + d.getFullYear();
+        if (ml !== mesLbl) { mesLbl = ml; lista.appendChild(A.h('div', { class: 'mes-divisor', text: ml })); }
+
         var t = R.turnosDoDia(d, C);
+        var passado = d < HOJE0;
         var card = A.h('button', { class: 'dia-card' + (ehHoje(d) ? ' hoje' : (passado ? ' passado' : '')), 'data-iso': iso(d) });
         card.innerHTML =
-          '<div class="dia-cab">' + ('0' + dia).slice(-2) + ' · ' + DIAS[d.getDay()] +
+          '<div class="dia-cab">' + ('0' + d.getDate()).slice(-2) + ' · ' + DIAS[d.getDay()] +
             (ehHoje(d) ? ' <span class="tag v">hoje</span>' : '') + '</div>' +
           '<div class="dia-tur"><span class="dia-rot">Diurno</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + A.esc(nomes(t.turno1)) + '</span></div>' +
           '<div class="dia-tur"><span class="dia-rot">Noturno</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + A.esc(nomes(t.turno2)) + '</span></div>';
@@ -65,11 +77,19 @@
         lista.appendChild(card);
         if (ehHoje(d)) cardHoje = card;
       }
-      if (irParaHoje && cardHoje) setTimeout(function () { cardHoje.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30);
+
+      lista.appendChild(botao('▼ mais 30 dias', function () { futuros += 30; draw(); }));
     }
-    draw(true);
+    function botao(txt, fn) {
+      var b = A.h('button', { class: 'btn sec pequeno', text: txt, style: 'margin:4px 0' });
+      b.addEventListener('click', fn);
+      return b;
+    }
+    function irScroll() { if (cardHoje) setTimeout(function () { cardHoje.scrollIntoView({ block: 'start' }); }, 20); }
+
+    draw();
+    if (cardHoje) setTimeout(function () { cardHoje.scrollIntoView({ block: 'start' }); }, 40);
   }
-  function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 
   function estadoModal(data) {
     var v = iso(data);
@@ -99,5 +119,5 @@
     calc();
   }
 
-  A.registrarTela('escala', { titulo: 'ESCALA', icone: '🗓', desc: 'Diurno e noturno de cada dia', acesso: 'todos', montar: montar });
+  A.registrarTela('escala', { titulo: 'ESCALA', icone: '🗓', desc: 'Diurno e noturno, de hoje em diante', acesso: 'todos', montar: montar });
 })();
