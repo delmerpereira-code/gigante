@@ -323,29 +323,24 @@ table.cal td.folga { background: repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7
 .legenda { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text2); margin: 8px 0 4px; }
 .legenda i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
 
-/* ── escala em calendário ──────────────────────────────────────────── */
-.cal-mes { margin-top: 10px; }
-.cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 3px; }
-.cal-dow span { text-align: center; font-family: var(--mono); font-size: 10px; color: var(--text2); }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.cal-cel {
-  aspect-ratio: 1 / 1; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 8px; padding: 3px; display: flex; flex-direction: column; align-items: flex-start;
-  gap: 1px; overflow: hidden; text-align: left;
+/* ── escala: cartão de dia ─────────────────────────────────────────── */
+.dia-card {
+  display: block; width: 100%; text-align: left; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
 }
-.cal-cel .cd { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text); }
-.cal-cel .ct {
-  font-family: var(--mono); font-size: 10px; font-weight: 700; color: #fff;
-  border-radius: 3px; padding: 0 3px; line-height: 1.5;
+.dia-card.hoje { border-color: var(--accent); border-width: 2px; }
+.dia-cab { font-family: var(--mono); font-weight: 700; color: var(--accent); font-size: 14px; margin-bottom: 8px; text-transform: capitalize; }
+.dia-tur { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 3px 0; flex-wrap: wrap; }
+.dia-rot { font-family: var(--mono); font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; min-width: 62px; }
+.dia-nm { color: var(--text2); font-size: 12px; }
+
+.pl-pill {
+  display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: #fff; border-radius: 5px; padding: 2px 8px; letter-spacing: .3px;
 }
-.cal-cel .ct.pl1 { background: var(--pl1); } .cal-cel .ct.pl2 { background: var(--pl2); color: #3a2f00; }
-.cal-cel .ct.pl3 { background: var(--pl3); } .cal-cel .ct.pl4 { background: var(--pl4); } .cal-cel .ct.pl5 { background: var(--pl5); }
-.cal-cel .ct2 { font-family: var(--mono); font-size: 9px; color: var(--text2); }
-.cal-cel.fora { opacity: .35; }
-.cal-cel.passado { opacity: .45; }
-.cal-cel.hoje { border-color: var(--accent); border-width: 2px; box-shadow: 0 0 0 2px rgba(10,110,110,.12); }
-.cal-cel.hoje .cd { color: var(--accent); }
-.legenda i.pl1, .legenda i.pl2, .legenda i.pl3, .legenda i.pl4, .legenda i.pl5 { }
+.pl-pill.pl1 { background: var(--pl1); } .pl-pill.pl2 { background: var(--pl2); color: #3a2f00; }
+.pl-pill.pl3 { background: var(--pl3); } .pl-pill.pl4 { background: var(--pl4); } .pl-pill.pl5 { background: var(--pl5); }
+.pl-pill.vazio { background: var(--surface2); color: var(--text2); }
 
 /* estado dos plantões (cards) */
 .est-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

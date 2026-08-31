@@ -1,23 +1,30 @@
-/* telas/escala.js — escala em formato de calendário (grade mensal) */
+/* telas/escala.js — escala: lista de dias (de hoje pra frente), diurno/noturno */
 (function () {
   'use strict';
   var R = window.Rotacao, S = window.Store, A = window.App;
   var MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho',
                'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-  var DOW = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+  var DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
   var CLS = { 'PL I': 'pl1', 'PL II': 'pl2', 'PL III': 'pl3', 'PL IV': 'pl4', 'PL V': 'pl5' };
   var ROT = { turno_1: 'trab', turno_2: 'trab', descanso: 'prot', folga: 'prot' };
 
   var hoje = new Date();
   var ano = hoje.getFullYear(), mes = hoje.getMonth();
+  var verPassados = false;
 
   function cfg() { return S.rotacaoConfig(); }
   function nomes(pl) {
     var d = S.plantoes().filter(function (x) { return x.codigo === pl; })[0] || {};
     return [d.pessoa_1, d.pessoa_2].filter(Boolean).join(' + ') || '—';
   }
+  function meianoite(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  var HOJE0 = meianoite(hoje);
   function ehHoje(d) { return d.toDateString() === hoje.toDateString(); }
-  function ehPassado(d) { var h = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()); return d < h; }
+
+  function pill(pl) {
+    if (!pl) return '<span class="pl-pill vazio">—</span>';
+    return '<span class="pl-pill ' + (CLS[pl] || '') + '">' + pl + '</span>';
+  }
 
   function montar(corpo) {
     A.acaoHeader('Estado', function () { estadoModal(new Date()); });
@@ -27,53 +34,48 @@
     tb.append(
       A.h('button', { text: '◀', onclick: function () { mv(-1); } }), lbl,
       A.h('button', { text: '▶', onclick: function () { mv(1); } }),
-      A.h('button', { text: 'Hoje', onclick: function () { ano = hoje.getFullYear(); mes = hoje.getMonth(); draw(); } })
+      A.h('button', { text: 'Hoje', onclick: function () { ano = hoje.getFullYear(); mes = hoje.getMonth(); verPassados = false; draw(); } })
     );
     corpo.appendChild(tb);
+    var lista = A.h('div', { class: 'lista', style: 'margin-top:12px' });
+    corpo.appendChild(lista);
 
-    var leg = A.h('div', { class: 'legenda' });
-    leg.innerHTML = cfg().ordem.map(function (p) {
-      return '<span><i class="' + (CLS[p] || '') + '" style="background:var(--' + (CLS[p] || 'accent') + ')"></i>' + p + '</span>';
-    }).join('');
-    corpo.appendChild(leg);
-
-    var grade = A.h('div', { class: 'cal-mes' });
-    corpo.appendChild(grade);
-
-    function mv(d) { mes += d; if (mes < 0) { mes = 11; ano--; } if (mes > 11) { mes = 0; ano++; } draw(); }
+    function mv(d) { mes += d; if (mes < 0) { mes = 11; ano--; } if (mes > 11) { mes = 0; ano++; } verPassados = false; draw(); }
 
     function draw() {
       lbl.textContent = MESES[mes] + ' / ' + ano;
+      lista.innerHTML = '';
       var C = cfg();
-      var prim = new Date(ano, mes, 1);
-      var ini = new Date(ano, mes, 1 - prim.getDay());       // domingo antes do dia 1
-      var html = '<div class="cal-dow">' + DOW.map(function (d) { return '<span>' + d + '</span>'; }).join('') + '</div>';
-      html += '<div class="cal-grid">';
-      var ultimo = new Date(ano, mes + 1, 0).getDate();
-      var semanas = Math.ceil((prim.getDay() + ultimo) / 7);
-      for (var i = 0; i < semanas * 7; i++) {
-        var d = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + i);
-        var foraMes = d.getMonth() !== mes;
+      var total = new Date(ano, mes + 1, 0).getDate();
+      var mesAtual = (ano === hoje.getFullYear() && mes === hoje.getMonth());
+      var pulou = 0;
+
+      for (var dia = 1; dia <= total; dia++) {
+        var d = new Date(ano, mes, dia);
+        if (mesAtual && !verPassados && meianoite(d) < HOJE0) { pulou++; continue; }
         var t = R.turnosDoDia(d, C);
-        var cls = 'cal-cel' + (foraMes ? ' fora' : '') + (ehHoje(d) ? ' hoje' : '') + (!foraMes && ehPassado(d) ? ' passado' : '');
-        html += '<button class="' + cls + '" data-iso="' + iso(d) + '">' +
-          '<span class="cd">' + d.getDate() + '</span>' +
-          (t.turno1 ? '<span class="ct ' + (CLS[t.turno1] || '') + '">' + curto(t.turno1) + '</span>' : '') +
-          (t.turno2 ? '<span class="ct2">' + curto(t.turno2) + '</span>' : '') +
-          '</button>';
-      }
-      html += '</div>';
-      grade.innerHTML = html;
-      Array.prototype.forEach.call(grade.querySelectorAll('.cal-cel'), function (b) {
-        b.addEventListener('click', function () {
-          var p = b.getAttribute('data-iso').split('-');
+        var card = A.h('button', { class: 'dia-card' + (ehHoje(d) ? ' hoje' : ''), 'data-iso': iso(d) });
+        card.innerHTML =
+          '<div class="dia-cab">' + ('0' + dia).slice(-2) + ' · ' + DIAS[d.getDay()] +
+            (ehHoje(d) ? ' <span class="tag v">hoje</span>' : '') + '</div>' +
+          '<div class="dia-tur"><span class="dia-rot">Diurno</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + A.esc(nomes(t.turno1)) + '</span></div>' +
+          '<div class="dia-tur"><span class="dia-rot">Noturno</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + A.esc(nomes(t.turno2)) + '</span></div>';
+        card.addEventListener('click', function () {
+          var p = this.getAttribute('data-iso').split('-');
           estadoModal(new Date(+p[0], +p[1] - 1, +p[2]));
         });
-      });
+        lista.appendChild(card);
+      }
+
+      if (pulou > 0) {
+        var b = A.h('button', { class: 'btn sec pequeno', text: '↑ ver ' + pulou + ' dia(s) passados', style: 'margin-bottom:10px' });
+        b.addEventListener('click', function () { verPassados = true; draw(); });
+        lista.insertBefore(b, lista.firstChild);
+      }
+      if (!lista.children.length) lista.innerHTML = '<div class="vazio"><div class="txt">Sem dias.</div></div>';
     }
     draw();
   }
-  function curto(pl) { return String(pl).replace('PL ', ''); }
   function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 
   function estadoModal(data) {
@@ -81,7 +83,7 @@
     var m = A.abrirModal(
       '<h2>Escala do dia</h2>' +
       '<div class="campo"><label>Data</label><input type="date" id="es-data" value="' + v + '"></div>' +
-      '<div id="es-turnos" style="margin-bottom:10px"></div>' +
+      '<div id="es-turnos" style="margin-bottom:12px"></div>' +
       '<div class="home-sec-tit">Estado dos 5 plantões</div>' +
       '<div id="es-res" class="est-lista"></div>' +
       '<div class="modal-acoes"><button class="btn sec" id="es-x">Fechar</button></div>');
@@ -89,7 +91,8 @@
       var val = m.querySelector('#es-data').value; if (!val) return;
       var t = R.turnosDoDia(new Date(val + 'T12:00'), cfg());
       m.querySelector('#es-turnos').innerHTML =
-        linhaT('1º turno · 08–20', t.turno1) + linhaT('2º turno · 20–08', t.turno2);
+        '<div class="dia-tur"><span class="dia-rot">Diurno · 08–20</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + A.esc(nomes(t.turno1)) + '</span></div>' +
+        '<div class="dia-tur"><span class="dia-rot">Noturno · 20–08</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + A.esc(nomes(t.turno2)) + '</span></div>';
       var inst = new Date(val + 'T08:30:00');
       m.querySelector('#es-res').innerHTML = cfg().ordem.map(function (pl) {
         var e = R.estadoEm(pl, inst, cfg());
@@ -98,14 +101,10 @@
           (e.protegido ? '<div class="card-sub">protegido até ' + e.fimProtecao.toLocaleString('pt-BR') + '</div>' : '') + '</div>';
       }).join('');
     }
-    function linhaT(rot, pl) {
-      if (!pl) return '<div class="card-linha muted">' + rot + ' — —</div>';
-      return '<div class="card-linha"><span class="tag n">' + rot + '</span> <b>' + pl + '</b> · ' + A.esc(nomes(pl)) + '</div>';
-    }
     m.querySelector('#es-data').addEventListener('change', calc);
     m.querySelector('#es-x').addEventListener('click', A.fecharModal);
     calc();
   }
 
-  A.registrarTela('escala', { titulo: 'ESCALA', icone: '🗓', desc: 'Calendário dos 5 plantões', acesso: 'todos', montar: montar });
+  A.registrarTela('escala', { titulo: 'ESCALA', icone: '🗓', desc: 'Diurno e noturno de cada dia', acesso: 'todos', montar: montar });
 })();
