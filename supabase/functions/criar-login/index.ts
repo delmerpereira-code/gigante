@@ -1,5 +1,5 @@
 // Edge Function: criar-login
-// Cria a conta de acesso de um funcionario (login = e-mail cadastrado).
+// Cria (ou reaproveita) a conta de acesso de um funcionario. Login = e-mail cadastrado.
 // So o lider pode chamar. Usa a chave admin -> sem limite de e-mail / validacao.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -33,25 +33,30 @@ Deno.serve(async (req) => {
     if (ehLider !== true) return json({ ok: false, error: "So o lider pode criar acessos." });
 
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
-    const ident = String(body.email ?? body.matricula ?? "").trim().toLowerCase();
+    const email = String(body.email ?? body.matricula ?? "").trim().toLowerCase();
     const pass = String(body.senha ?? "");
-    if (!/^\S+@\S+\.\S+$/.test(ident)) return json({ ok: false, error: "Informe um e-mail valido." });
+    if (!/^\S+@\S+\.\S+$/.test(email)) return json({ ok: false, error: "Informe um e-mail valido." });
     if (pass.length < 6) return json({ ok: false, error: "A senha precisa de pelo menos 6 caracteres." });
 
     const admin = createClient(url, service);
+
+    // ja existe uma conta com esse e-mail?
+    const { data: lista } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const existente = lista?.users?.find((u) => (u.email ?? "").toLowerCase() === email);
+
+    if (existente) {
+      // reaproveita: reseta a senha para a informada e confirma o e-mail
+      await admin.auth.admin.updateUserById(existente.id, { password: pass, email_confirm: true });
+      return json({ ok: true, user_id: existente.id, login_email: email, ja_existia: true });
+    }
+
     const { data, error } = await admin.auth.admin.createUser({
-      email: ident,
+      email,
       password: pass,
       email_confirm: true,
     });
-    if (error) {
-      const m = error.message || String(error);
-      if (/already been registered|already exists/i.test(m)) {
-        return json({ ok: false, error: "Ja existe uma conta com esse e-mail." });
-      }
-      return json({ ok: false, error: m });
-    }
-    return json({ ok: true, user_id: data.user!.id, login_email: ident });
+    if (error) return json({ ok: false, error: error.message || String(error) });
+    return json({ ok: true, user_id: data.user!.id, login_email: email });
   } catch (e) {
     return json({ ok: false, error: String((e as Error)?.message ?? e) });
   }
