@@ -102,7 +102,8 @@
         return d || a.nome_curto.localeCompare(b.nome_curto);
       });
       var saldos = S.saldos();
-      listaCard.innerHTML = '<h3>Funcionários (' + lista.length + ')</h3>';
+      listaCard.innerHTML = '';
+      listaCard.appendChild(A.h('h3', { text: 'Funcionários (' + lista.length + ')' }));
       lista.forEach(function (f) {
         var s = (f.nome_curto in saldos) ? saldos[f.nome_curto] : (Number(f.saldo_inicial_banco) || 0);
         var foto = f.foto ? '<img class="foto-mini" src="' + f.foto + '">' : '<span class="foto-mini vazia">' + A.esc((f.nome_curto || '?').charAt(0)) + '</span>';
@@ -121,7 +122,9 @@
         var dupla = [p.pessoa_1, p.pessoa_2].filter(Boolean).join(' + ') || '(vazio)';
         return '<span class="chip' + ((!p.pessoa_1 || !p.pessoa_2) ? ' neg' : '') + '"><b>' + p.codigo + '</b> ' + A.esc(dupla) + '</span>';
       }).join('');
-      listaCard.innerHTML += '<h3 style="margin-top:14px">Plantões</h3><div class="chips">' + chips + '</div>';
+      var pl = A.h('div', { style: 'margin-top:14px' });
+      pl.innerHTML = '<h3>Plantões</h3><div class="chips">' + chips + '</div>';
+      listaCard.appendChild(pl);
     }
 
     $('#fc-reg').addEventListener('change', togglePl);
