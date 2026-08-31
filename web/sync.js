@@ -44,7 +44,8 @@
   function funcCache(r) {
     return {
       id: r.id, matricula: r.matricula || '', nome_completo: r.nome_completo || '',
-      nome_curto: r.nome_curto, foto: r.foto || '', celular: r.celular || '', celular2: r.celular2 || '',
+      nome_curto: r.nome_curto, foto: r.foto || '', email: r.email || '',
+      celular: r.celular || '', celular2: r.celular2 || '',
       nascimento: d10(r.nascimento) || '', cargo: r.cargo,
       regime: REGIME_CACHE[r.regime] != null ? REGIME_CACHE[r.regime] : '',
       plantao: r.plantao || '', lider: r.lider ? 'sim' : 'nao',
@@ -56,7 +57,8 @@
   function funcDB(f) {
     return {
       id: f.id, matricula: f.matricula || null, nome_completo: f.nome_completo || '',
-      nome_curto: f.nome_curto, foto: f.foto || '', celular: f.celular || '', celular2: f.celular2 || '',
+      nome_curto: f.nome_curto, foto: f.foto || '', email: f.email || '',
+      celular: f.celular || '', celular2: f.celular2 || '',
       nascimento: d10(f.nascimento), cargo: f.cargo, regime: REGIME_DB[f.regime] || 'externo',
       plantao: f.plantao || '', lider: f.lider === 'sim', admissao: d10(f.admissao),
       status: f.status, saldo_inicial_banco: Number(f.saldo_inicial_banco) || 0,

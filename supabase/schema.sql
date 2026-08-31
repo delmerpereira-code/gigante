@@ -43,7 +43,8 @@ create table funcionarios (
   nome_completo   text not null default '',
   nome_curto      text not null unique,
   foto            text not null default '',          -- data URL base64 (por ora)
-  celular         text not null default '',
+  email           text not null default '',          -- e-mail real de contato (não é o login)
+  celular         text not null default '',          -- celular / WhatsApp
   celular2        text not null default '',
   nascimento      date,
   cargo           cargo_t       not null default 'investigador',

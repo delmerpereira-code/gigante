@@ -14,8 +14,14 @@ Use o projeto Supabase que você já tem **ou** crie um novo em <https://supabas
 ## 2. Criar as tabelas
 
 *SQL Editor → New query* → cole o conteúdo de [`schema.sql`](schema.sql) → **Run**.
-**Depois** rode também [`schema_delta_1.sql`](schema_delta_1.sql) (ajusta uma
-política e cria a função `permuta_propor`).
+**Depois** rode, em ordem:
+- [`schema_delta_1.sql`](schema_delta_1.sql) — `permuta_propor` + política de `banco_horas`
+- [`schema_delta_2.sql`](schema_delta_2.sql) — `security_invoker` nas views
+- [`schema_delta_3.sql`](schema_delta_3.sql) — coluna `email` (contato) em `funcionarios`
+
+**Login é pela matrícula.** O Supabase exige um e-mail, então o sistema cria um
+interno `<matricula>@plantao.local` invisível para o usuário. O campo `email` guarda
+o e-mail real de contato (permuta, documentos).
 
 Isso cria: `funcionarios`, `config`, `eventos`, `banco_horas`, `permutas`,
 `permuta_historico`, `conta_permutas`, as views de saldo, os *enums*, as políticas de

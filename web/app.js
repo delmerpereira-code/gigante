@@ -156,7 +156,7 @@
       DB.entrar($('lg-email').value.trim(), $('lg-senha').value)
         .then(function () { iniciar(); })
         .catch(function (err) {
-          $('lg-erro').textContent = /Invalid login/i.test(err.message || '') ? 'E-mail ou senha inválidos.' : (err.message || String(err));
+          $('lg-erro').textContent = /Invalid login/i.test(err.message || '') ? 'Matrícula ou senha inválidos.' : (err.message || String(err));
           $('lg-erro').hidden = false; $('lg-btn').disabled = false;
         });
     });

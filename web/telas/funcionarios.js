@@ -16,7 +16,8 @@
       '<div class="campo"><label>Matrícula</label><input type="text" id="fc-mat"></div>' +
       '<div class="campo"><label>Nome completo</label><input type="text" id="fc-nc"></div>' +
       '<div class="campo"><label>Nome curto *</label><input type="text" id="fc-ns"></div>' +
-      '<div class="campo"><label>Celular</label><input type="tel" id="fc-c1"></div>' +
+      '<div class="campo"><label>E-mail (contato)</label><input type="email" id="fc-email-c" autocapitalize="off"></div>' +
+      '<div class="campo"><label>Celular / WhatsApp</label><input type="tel" id="fc-c1"></div>' +
       '<div class="campo"><label>Celular 2</label><input type="tel" id="fc-c2"></div>' +
       '<div class="campo"><label>Nascimento</label><input type="date" id="fc-nasc"></div>' +
       '<div class="campo"><label>Cargo</label><select id="fc-cargo"><option value="investigador">Investigador</option><option value="delegado">Delegado</option><option value="diretor">Diretor</option></select></div>' +
@@ -29,9 +30,8 @@
       '<div class="campo"><label>Dias de férias/ano</label><input type="number" id="fc-df" value="30"></div>' +
       '<div class="campo wide" style="border-top:1px solid var(--border);padding-top:12px">' +
         '<label>Login</label><div id="fc-login-info" class="card-sub" style="margin-bottom:6px"></div>' +
-        '<input type="email" id="fc-email" placeholder="e-mail de acesso" autocomplete="off">' +
-        '<input type="text" id="fc-senha" placeholder="senha inicial (mín. 6)" autocomplete="off" style="margin-top:6px">' +
-        '<div class="card-sub" style="margin-top:4px">A pessoa entra com esse e-mail/senha e troca a senha em "Meu cadastro".</div>' +
+        '<input type="text" id="fc-senha" placeholder="senha inicial (mín. 6)" autocomplete="off">' +
+        '<div class="card-sub" style="margin-top:4px">O login é a <b>matrícula</b> (acima). A pessoa entra com matrícula + senha e troca a senha em "Meu cadastro".</div>' +
       '</div>' +
       '</div><div class="card-acoes"><button class="pri" id="fc-salvar">Salvar</button><button id="fc-cancelar" hidden>Cancelar</button><span class="erro" id="fc-erro"></span></div>';
     corpo.appendChild(card);
@@ -45,16 +45,17 @@
       card.querySelectorAll('input').forEach(function (i) { i.value = i.id === 'fc-saldo' ? '0' : (i.id === 'fc-df' ? '30' : ''); });
       $('#fc-fbox').textContent = 'sem foto'; $('#fc-tit').textContent = 'Novo funcionário';
       $('#fc-cancelar').hidden = true; $('#fc-erro').textContent = '';
-      $('#fc-login-info').textContent = 'Preencha e-mail + senha para criar o acesso.';
-      $('#fc-email').disabled = false; $('#fc-senha').disabled = false;
+      $('#fc-login-info').textContent = 'Defina a matrícula + senha inicial para criar o acesso.';
+      $('#fc-senha').disabled = false; $('#fc-mat').disabled = false;
       togglePl();
     }
     function editar(f) {
       editId = f.id; fotoAtual = f.foto || '';
       var temLogin = !!f.auth_user_id;
-      $('#fc-login-info').textContent = temLogin ? '✓ login já vinculado' : 'Sem login — preencha e-mail + senha para criar.';
-      $('#fc-email').value = ''; $('#fc-senha').value = '';
-      $('#fc-email').disabled = temLogin; $('#fc-senha').disabled = temLogin;
+      $('#fc-login-info').textContent = temLogin ? '✓ login já criado (matrícula ' + (f.matricula || '?') + ')' : 'Sem login — defina matrícula + senha e salve.';
+      $('#fc-senha').value = ''; $('#fc-senha').disabled = temLogin;
+      $('#fc-mat').disabled = temLogin;
+      $('#fc-email-c').value = f.email || '';
       $('#fc-mat').value = f.matricula || ''; $('#fc-nc').value = f.nome_completo || ''; $('#fc-ns').value = f.nome_curto || '';
       $('#fc-c1').value = f.celular || ''; $('#fc-c2').value = f.celular2 || ''; $('#fc-nasc').value = f.nascimento || '';
       $('#fc-cargo').value = f.cargo; $('#fc-reg').value = f.regime || ''; togglePl(); $('#fc-pl').value = f.plantao || '';
@@ -66,7 +67,7 @@
     function dadosForm(authId) {
       var d = {
         id: editId || undefined, matricula: $('#fc-mat').value.trim(), nome_completo: $('#fc-nc').value, nome_curto: $('#fc-ns').value,
-        foto: fotoAtual, celular: $('#fc-c1').value, celular2: $('#fc-c2').value, nascimento: $('#fc-nasc').value,
+        foto: fotoAtual, email: $('#fc-email-c').value.trim(), celular: $('#fc-c1').value, celular2: $('#fc-c2').value, nascimento: $('#fc-nasc').value,
         cargo: $('#fc-cargo').value, regime: $('#fc-reg').value, plantao: $('#fc-reg').value === 'plantao' ? $('#fc-pl').value : '',
         lider: $('#fc-lider').value, status: $('#fc-st').value, admissao: $('#fc-adm').value,
         saldo_inicial_banco: $('#fc-saldo').value, dias_ferias_ano: $('#fc-df').value
@@ -80,14 +81,15 @@
     }
     function salvar() {
       $('#fc-erro').textContent = '';
-      var email = $('#fc-email').value.trim(), senha = $('#fc-senha').value;
-      var criarLogin = !$('#fc-email').disabled && email && senha;
+      var matricula = $('#fc-mat').value.trim(), senha = $('#fc-senha').value;
+      var criarLogin = !$('#fc-senha').disabled && !!senha;
       try {
         var p;
         if (criarLogin) {
+          if (!matricula) throw new Error('Defina a matrícula — é o login da pessoa.');
           if (senha.length < 6) throw new Error('A senha precisa de pelo menos 6 caracteres.');
           A.loading(true, 'CRIANDO ACESSO');
-          p = window.Sync.criarLogin(email, senha).then(function (uid) { A.loading(false); return gravar(uid); });
+          p = window.Sync.criarLogin(matricula, senha).then(function (uid) { A.loading(false); return gravar(uid); });
         } else {
           p = gravar(null);
         }

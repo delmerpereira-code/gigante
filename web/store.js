@@ -162,12 +162,12 @@
 
   // ─── Funcionários ─────────────────────────────────────────────────────────
   //  Chave interna: id. Identificador visível: matricula. Exibição: nome_curto.
-  var CAMPOS_FUNC = ['id', 'matricula', 'nome_completo', 'nome_curto', 'foto',
+  var CAMPOS_FUNC = ['id', 'matricula', 'nome_completo', 'nome_curto', 'foto', 'email',
     'celular', 'celular2', 'nascimento', 'cargo', 'regime', 'plantao', 'lider',
     'admissao', 'status', 'saldo_inicial_banco', 'dias_ferias_ano', 'auth_user_id'];
   var CARGOS = ['investigador', 'delegado', 'diretor'];
   // campos que o próprio funcionário pode editar (o resto é só do líder)
-  var CAMPOS_PESSOAIS = ['nome_completo', 'nome_curto', 'foto', 'celular', 'celular2', 'nascimento'];
+  var CAMPOS_PESSOAIS = ['nome_completo', 'nome_curto', 'foto', 'email', 'celular', 'celular2', 'nascimento'];
 
   /** Converte um registro antigo (papel/nome) para o esquema novo. */
   function migrarFuncionario(f) {

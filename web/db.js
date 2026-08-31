@@ -22,6 +22,17 @@
     console.warn('[db] Supabase configurado mas a biblioteca não carregou (CDN?). Rodando em modo local.');
   }
 
+  // O login é pela matrícula; o Supabase exige um e-mail, então geramos um interno.
+  var LOGIN_DOMINIO = 'plantao.local';
+  function emailDeMatricula(m) {
+    return String(m || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '') + '@' + LOGIN_DOMINIO;
+  }
+  /** Aceita matrícula OU e-mail (se tiver "@"). */
+  function identParaEmail(ident) {
+    ident = String(ident || '').trim();
+    return ident.indexOf('@') >= 0 ? ident.toLowerCase() : emailDeMatricula(ident);
+  }
+
   var DB = {
     configurado: configurado,
     client: client,
@@ -33,9 +44,12 @@
     onAuth: function (cb) {
       if (client) client.auth.onAuthStateChange(function (_e, s) { cb(s); });
     },
-    entrar: function (email, senha) {
+    emailDeMatricula: emailDeMatricula,
+
+    /** identificador = matrícula (ou e-mail, se tiver "@"). */
+    entrar: function (identificador, senha) {
       if (!client) return Promise.reject(new Error('Supabase não configurado (web/config.js).'));
-      return client.auth.signInWithPassword({ email: email, password: senha })
+      return client.auth.signInWithPassword({ email: identParaEmail(identificador), password: senha })
         .then(function (r) { if (r.error) throw r.error; return r.data; });
     },
     sair: function () { return client ? client.auth.signOut() : Promise.resolve(); },
@@ -51,8 +65,9 @@
      * — usa um cliente descartável. Devolve o user_id da conta criada.
      * Exige "Enable Sign Ups" ligado no Supabase (Auth → Email).
      */
-    criarLogin: function (email, senha) {
+    criarLogin: function (matriculaOuEmail, senha) {
       if (!client || !root.supabase) return Promise.reject(new Error('Supabase não configurado.'));
+      var email = identParaEmail(matriculaOuEmail);
       var tmp = root.supabase.createClient(URL, KEY, { auth: { persistSession: false, autoRefreshToken: false } });
       return tmp.auth.signUp({ email: email, password: senha }).then(function (r) {
         if (r.error) {

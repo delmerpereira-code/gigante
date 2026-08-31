@@ -26,7 +26,8 @@
       '</div>' +
       '<div class="campo"><label>Nome completo</label><input type="text" id="mc-nc" value="' + A.esc(f.nome_completo) + '"></div>' +
       '<div class="campo"><label>Nome curto *</label><input type="text" id="mc-ns" value="' + A.esc(f.nome_curto) + '"></div>' +
-      '<div class="campo"><label>Celular</label><input type="tel" id="mc-c1" value="' + A.esc(f.celular) + '"></div>' +
+      '<div class="campo"><label>E-mail (contato)</label><input type="email" id="mc-em" autocapitalize="off" value="' + A.esc(f.email || '') + '"></div>' +
+      '<div class="campo"><label>Celular / WhatsApp</label><input type="tel" id="mc-c1" value="' + A.esc(f.celular) + '"></div>' +
       '<div class="campo"><label>Celular 2</label><input type="tel" id="mc-c2" value="' + A.esc(f.celular2) + '"></div>' +
       '<div class="campo"><label>Nascimento</label><input type="date" id="mc-nasc" value="' + A.esc(f.nascimento) + '"></div>' +
       '</div><div class="card-acoes"><button class="pri" id="mc-salvar">Salvar</button><span class="erro" id="mc-erro"></span><span class="ok-msg" id="mc-ok"></span></div>';
@@ -81,7 +82,7 @@
       $('#mc-erro').textContent = ''; $('#mc-ok').textContent = '';
       try {
         Promise.resolve(S.salvarFuncionario({
-          id: f.id, nome_completo: $('#mc-nc').value, nome_curto: $('#mc-ns').value,
+          id: f.id, nome_completo: $('#mc-nc').value, nome_curto: $('#mc-ns').value, email: $('#mc-em').value.trim(),
           celular: $('#mc-c1').value, celular2: $('#mc-c2').value, nascimento: $('#mc-nasc').value, foto: fotoAtual
         }, true)).then(function () { $('#mc-ok').textContent = 'Salvo.'; A.toast('Dados salvos', 'sucesso'); })
           .catch(function (e) { $('#mc-erro').textContent = e.message || String(e); });
