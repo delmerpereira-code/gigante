@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var S = window.Store, A = window.App;
-  var CARGO = { investigador: 'Investigador', delegado: 'Delegado', diretor: 'Diretor' };
+  var CARGO = { investigador: 'Investigador', delegado: 'Delegado', diretor: 'Diretor', administrador: 'Administrador' };
   var REGIME = { plantao: 'Plantão', coringa: 'Coringa', '': 'Fora da escala' };
 
   function montar(corpo) {
@@ -20,7 +20,7 @@
       '<div class="campo"><label>Celular / WhatsApp</label><input type="tel" id="fc-c1"></div>' +
       '<div class="campo"><label>Celular 2</label><input type="tel" id="fc-c2"></div>' +
       '<div class="campo"><label>Nascimento</label><input type="date" id="fc-nasc"></div>' +
-      '<div class="campo"><label>Cargo</label><select id="fc-cargo"><option value="investigador">Investigador</option><option value="delegado">Delegado</option><option value="diretor">Diretor</option></select></div>' +
+      '<div class="campo"><label>Cargo</label><select id="fc-cargo"><option value="investigador">Investigador</option><option value="delegado">Delegado</option><option value="diretor">Diretor</option><option value="administrador">Administrador</option></select></div>' +
       '<div class="campo"><label>Regime</label><select id="fc-reg"><option value="plantao">Plantão</option><option value="coringa">Coringa</option><option value="">Fora da escala</option></select></div>' +
       '<div class="campo" id="fc-wpl"><label>Plantão</label><select id="fc-pl"><option value="">—</option>' + ord.map(function (c) { return '<option value="' + c + '">' + c + '</option>'; }).join('') + '</select></div>' +
       '<div class="campo"><label>Acesso de líder</label><select id="fc-lider"><option value="nao">Não</option><option value="sim">Sim</option></select></div>' +

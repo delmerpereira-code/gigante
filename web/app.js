@@ -133,25 +133,13 @@
     // saudação + foto
     $('home-nome').textContent = 'Olá, ' + nome + ' — ' + saudacao();
     var subs = [];
-    if (eu) subs.push({ investigador: 'Investigador', delegado: 'Delegado', diretor: 'Diretor' }[eu.cargo] || eu.cargo);
+    if (eu) subs.push({ investigador: 'Investigador', delegado: 'Delegado', diretor: 'Diretor', administrador: 'Administrador' }[eu.cargo] || eu.cargo);
     if (eu && eu.plantao) subs.push(eu.plantao);
     if (lider) subs.push('líder');
     $('home-papel').textContent = subs.join(' · ');
     var fb = $('home-foto');
     fb.innerHTML = (eu && eu.foto) ? '<img src="' + eu.foto + '">' : (nome.charAt(0));
     fb.className = 'home-foto' + ((eu && eu.foto) ? '' : ' vazia');
-
-    // "Ver como" — só líder
-    var vc = $('home-vercomo');
-    if (lider) {
-      var pessoas = S.funcionarios().slice().sort(function (a, b) { return a.nome_curto.localeCompare(b.nome_curto); });
-      vc.hidden = false;
-      vc.innerHTML = 'Ver como <select id="vcSel"><option value="Lider">Líder</option>' +
-        pessoas.map(function (f) { return '<option value="' + App.esc(f.nome_curto) + '">' + App.esc(f.nome_curto) + '</option>'; }).join('') + '</select>';
-      var sel = vc.querySelector('#vcSel');
-      sel.value = S.verComo() || 'Lider';
-      sel.addEventListener('change', function () { S.setVerComo(sel.value); renderHome(); });
-    } else vc.hidden = true;
 
     // comunicado
     var com = $('home-comunicado');

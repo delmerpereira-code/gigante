@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var S = window.Store, A = window.App;
-  var CARGO = { investigador: 'Investigador', delegado: 'Delegado', diretor: 'Diretor' };
+  var CARGO = { investigador: 'Investigador', delegado: 'Delegado', diretor: 'Diretor', administrador: 'Administrador' };
   var REGIME = { plantao: 'Plantão', coringa: 'Coringa', '': 'Fora da escala' };
 
   function alvo() {
