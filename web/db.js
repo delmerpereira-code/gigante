@@ -23,7 +23,7 @@
   }
 
   // O login é pela matrícula; o Supabase exige um e-mail, então geramos um interno.
-  var LOGIN_DOMINIO = 'plantao.local';
+  var LOGIN_DOMINIO = 'plantao.app';
   function emailDeMatricula(m) {
     return String(m || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '') + '@' + LOGIN_DOMINIO;
   }
@@ -61,24 +61,22 @@
     },
 
     /**
-     * Cria uma conta de login (e-mail + senha) SEM derrubar a sessão de quem chama
-     * — usa um cliente descartável. Devolve o user_id da conta criada.
-     * Exige "Enable Sign Ups" ligado no Supabase (Auth → Email).
+     * Cria a conta de acesso de um funcionário via Edge Function `criar-login`
+     * (usa a chave admin no servidor — sem limite de e-mail, sem validação chata).
+     * Devolve o user_id.
      */
-    criarLogin: function (matriculaOuEmail, senha) {
-      if (!client || !root.supabase) return Promise.reject(new Error('Supabase não configurado.'));
-      var email = identParaEmail(matriculaOuEmail);
-      var tmp = root.supabase.createClient(URL, KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-      return tmp.auth.signUp({ email: email, password: senha }).then(function (r) {
-        if (r.error) {
-          var m = r.error.message || String(r.error);
-          if (/already registered|already been registered/i.test(m)) throw new Error('Esse e-mail já tem uma conta.');
-          if (/Signups not allowed|signup is disabled/i.test(m)) throw new Error('Cadastro de contas está desligado no Supabase (Auth → Email → Enable Sign Ups).');
-          throw new Error(m);
-        }
-        if (!r.data || !r.data.user) throw new Error('Não foi possível criar a conta.');
-        return r.data.user.id;
-      });
+    criarLogin: function (matricula, senha) {
+      if (!client) return Promise.reject(new Error('Supabase não configurado.'));
+      return client.functions.invoke('criar-login', { body: { matricula: matricula, senha: senha } })
+        .then(function (r) {
+          if (r.error) {
+            var m = (r.error && r.error.message) || String(r.error);
+            if (/not found|404/i.test(m)) throw new Error('A função "criar-login" não está publicada no Supabase (veja supabase/functions/criar-login).');
+            throw new Error(m);
+          }
+          if (!r.data || r.data.ok !== true) throw new Error((r.data && r.data.error) || 'Não foi possível criar a conta.');
+          return r.data.user_id;
+        });
     },
 
     /** SELECT * de uma tabela/view (respeitando RLS). */
