@@ -50,7 +50,7 @@
       corpo.appendChild(c);
     }
 
-    if (window.Sync && Sync.modo === 'db' && S.papelAtual().tipo === 'funcionario') {
+    if (window.Sync && Sync.modo === 'db') {
       var sc = A.h('div', { class: 'card' });
       sc.innerHTML = '<h3>Trocar senha</h3>' +
         '<div class="campo"><label>Nova senha (mín. 6)</label><input type="password" id="sn-1"></div>' +
