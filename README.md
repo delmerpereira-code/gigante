@@ -10,10 +10,19 @@ Projeto novo e independente. Veja a especificação completa em
 
 ```
 web/          Frontend estático (GitHub Pages) — desktop e celular
-  index.html
+  calendario.html / .js      Gantt mensal (visão geral: rotação + eventos + alertas)
+  index.html / app.js        Escala mensal + estado + simulador de quebra
+  ferias.html / ferias.js    Comunicação de férias com semáforo de disponibilidade
+  permuta.html / permuta.js  Permuta de turno: proposta, aprovação, termo, conta A↔B
+  eventos.html / eventos.js   Folga, convocação, sobreaviso
+  meu-cadastro.html / .js    Dados pessoais (self-service)
+  banco.html / banco.js       Banco de horas (livro-caixa + saldos + ajuste manual)
+  cadastro.html / cadastro.js Funcionários — só Gerente
+  dados.html / dados.js       Parâmetros (aba Config) + backup JSON — só Gerente
+  nav.js                     Navegação + seletor "Ver como" (papel simulado)
+  store.js                   Camada de dados local (localStorage) — espelha as abas
+  rotacao.js                 Motor de rotação (fonte de verdade)
   style.css
-  app.js
-  rotacao.js  Motor de rotação (fonte de verdade)
 apps-script/  API JSON sobre Google Sheets (deploy via clasp)
   Codigo.js
   Rotacao.js  Cópia servidor do motor — manter em sincronia com web/rotacao.js
@@ -31,23 +40,35 @@ docs/
 - **Banco:** Google Sheets, uma aba por entidade
   (`Funcionarios`, `Plantoes`, `Config`, `Eventos`, `BancoHoras`, `_USUARIOS`).
 
-## Estado atual (1ª entrega)
+## Estado atual
 
-Somente o **motor de rotação** e a leitura da escala. Abrir `web/index.html` no
-navegador já mostra:
+Roda 100% no navegador, **sem backend**. Os dados ficam em `localStorage` (por
+navegador) — a tela **Config / Dados** exporta e importa tudo em JSON.
 
-- Escala mensal (padrão: setembro/2026, que confere com a planilha enviada).
-- Estado de cada plantão numa data (turno / descanso 24 h / folga 72 h).
-- Simulador de quebra: calcula horas de folga perdidas + horas de trabalho → banco.
+No topo há o seletor **"Ver como"**: escolha *Gerente* (vê tudo) ou um funcionário
+(vê só o que é dele). É a simulação local do controle de acesso.
 
-Ainda **não** persiste dados. Cadastro, eventos (férias/licença), banco de horas e
-sobreaviso entram nas próximas etapas.
+- **Calendário** — gantt do mês: rotação de fundo + faixas de férias/licença/
+  sobreaviso/convocação/permuta + alertas (sobreaviso descoberto, coberturas
+  simultâneas).
+- **Escala** — grade mensal, estado de cada plantão numa data, simulador de quebra.
+- **Férias** — comunica férias/licença com semáforo 🟢/🟡/🔴 (disponibilidade de
+  coringa, sobreposição de dupla, saldo anual) e sugere a próxima janela livre.
+- **Eventos** — folga abatendo banco, troca, convocação e sobreaviso; prévia do
+  impacto e lançamento automático no banco de horas.
+- **Banco de horas** — livro-caixa, saldo por pessoa, ajuste manual.
+- **Funcionários** / **Config / Dados** — só Gerente: cadastro, parâmetros, backup.
+
+Falta: publicar a planilha + API (Apps Script) e login reais; **permuta** com termo e
+aprovação da gerente; a escala/calendário mostrar a troca de coringa na grade.
 
 ## Rodar o frontend localmente
 
+Basta abrir `web/index.html` no navegador (duplo-clique). Para servir via HTTP:
+
 ```
 cd web
-python -m http.server 8080
+npx --yes http-server -p 8080    # ou: python -m http.server 8080
 # abrir http://localhost:8080
 ```
 
@@ -63,4 +84,7 @@ python -m http.server 8080
 
 ```
 node tests/teste-rotacao.js   # confere a rotação contra setembro/2026
+node tests/teste-eventos.js    # confere cadastro, eventos e banco de horas
+node tests/teste-ferias.js     # confere saldo de férias e semáforo de disponibilidade
+node tests/teste-permuta.js    # confere permuta de turno e conta entre funcionários
 ```

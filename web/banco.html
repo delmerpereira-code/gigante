@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Banco de horas · Controle de Plantão</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="banco">
+  <header>
+    <h1>Controle de Plantão</h1>
+    <p>Livro-caixa: entradas e saídas de horas, saldo por pessoa</p>
+  </header>
+  <div id="nav"></div>
+
+  <main>
+    <section class="card">
+      <h2>Saldo atual por pessoa</h2>
+      <div class="chips" id="saldos"></div>
+    </section>
+
+    <section class="card">
+      <h2>Lançamento manual (ajuste)</h2>
+      <form id="form" class="grid-form">
+        <label>Pessoa
+          <select id="mPessoa"></select>
+        </label>
+        <label>Sentido
+          <select id="mSentido">
+            <option value="entrada">Entrada (crédito +)</option>
+            <option value="saida">Saída (débito −)</option>
+          </select>
+        </label>
+        <label>Horas
+          <input type="number" id="mHoras" step="0.5" min="0">
+        </label>
+        <label>Data/hora
+          <input type="datetime-local" id="mQuando">
+        </label>
+        <label class="wide">Observação
+          <input type="text" id="mObs" autocomplete="off">
+        </label>
+        <div class="form-acoes">
+          <button type="submit" class="primario">Lançar ajuste</button>
+          <span id="formErro" class="erro"></span>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="toolbar">
+        <h2 style="margin:0">Movimentos (<span id="qtd">0</span>)</h2>
+        <label class="inline">Pessoa
+          <select id="filtroPessoa"><option value="">todas</option></select>
+        </label>
+        <span class="spacer"></span>
+      </div>
+      <div class="tabela-wrap">
+        <table class="tabela" id="tabela">
+          <thead>
+            <tr><th>Data/hora</th><th>Pessoa</th><th>Motivo</th><th>Entrada</th><th>Saída</th><th>Saldo</th><th></th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>Controle de Plantão · dados locais neste navegador</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="rotacao.js"></script>
+  <script src="db.js"></script>
+  <script src="store.js"></script>
+  <script src="sync.js"></script>
+  <script src="nav.js"></script>
+  <script src="banco.js"></script>
+  <script src="boot.js"></script>
+</body>
+</html>

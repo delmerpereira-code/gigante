@@ -12,10 +12,12 @@
 var SHEET_ID = 'COLOQUE_AQUI_O_ID_DA_PLANILHA';
 
 var ABAS = {
-  Funcionarios: ['id', 'nome', 'papel', 'plantao', 'admissao', 'status', 'saldo_inicial_banco'],
+  Funcionarios: ['id', 'matricula', 'nome_completo', 'nome_curto', 'foto', 'celular', 'celular2',
+                 'nascimento', 'cargo', 'regime', 'plantao', 'lider', 'admissao', 'status',
+                 'saldo_inicial_banco', 'dias_ferias_ano'],
   Plantoes:     ['codigo', 'pessoa_1', 'pessoa_2'],
   Config:       ['chave', 'valor'],
-  Eventos:      ['id', 'tipo', 'pessoa', 'substituto', 'inicio', 'fim', 'irregular', 'obs'],
+  Eventos:      ['id', 'tipo', 'pessoa', 'substituto', 'inicio', 'fim', 'irregular', 'nivel', 'obs'],
   BancoHoras:   ['data_hora', 'pessoa', 'sentido', 'horas', 'motivo', 'evento_id', 'saldo_resultante'],
   _USUARIOS:    ['Usuario', 'Senha', 'Nome', 'Perfil', 'Ativo']
 };
@@ -25,7 +27,10 @@ var CONFIG_DEFAULT = [
   ['ordem_rotacao', 'PL IV;PL V;PL I;PL II;PL III'],
   ['mult_folga_perdida', '1'],
   ['fator_convocacao', '1'],
-  ['credito_sobreaviso', '0']
+  ['credito_sobreaviso', '0'],
+  ['dias_ferias_padrao', '30'],
+  ['antecedencia_ferias_dias', '30'],
+  ['permuta_prazo_horas', '12']
 ];
 
 // ─── infra ──────────────────────────────────────────────────────────────────

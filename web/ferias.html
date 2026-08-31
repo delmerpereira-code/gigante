@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Férias · Controle de Plantão</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="ferias">
+  <header>
+    <h1>Controle de Plantão</h1>
+    <p>Comunicação de férias com verificação de disponibilidade e saldo</p>
+  </header>
+  <div id="nav"></div>
+
+  <main>
+    <div class="aviso" id="avisoVazio" hidden>
+      Cadastre os funcionários primeiro (como <b>Gerente</b>, em
+      <a href="cadastro.html">Funcionários</a>).
+    </div>
+
+    <section class="card">
+      <h2 id="formTitulo">Comunicar férias</h2>
+      <form id="form" class="grid-form">
+        <input type="hidden" id="fId">
+        <label>Tipo
+          <select id="fTipo">
+            <option value="ferias">Férias</option>
+            <option value="licenca_medica">Licença médica</option>
+          </select>
+        </label>
+        <label>Pessoa
+          <select id="fPessoa"></select>
+        </label>
+        <label>Início
+          <input type="date" id="fInicio">
+        </label>
+        <label>Fim
+          <input type="date" id="fFim">
+        </label>
+        <label class="wide">Observação
+          <input type="text" id="fObs" autocomplete="off">
+        </label>
+        <div class="form-acoes">
+          <button type="submit" class="primario" id="btnSalvar">Comunicar</button>
+          <button type="button" id="btnCancelar" hidden>Cancelar</button>
+          <span id="formErro" class="erro"></span>
+        </div>
+      </form>
+      <div class="semaforo" id="semaforo" hidden></div>
+    </section>
+
+    <section class="card">
+      <h2>Saldo de férias (<span id="anoRef"></span>)</h2>
+      <div class="tabela-wrap">
+        <table class="tabela" id="tabSaldo">
+          <thead><tr><th>Pessoa</th><th>Direito</th><th>Marcado</th><th>Restante</th><th></th></tr></thead>
+          <tbody id="tbodySaldo"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Períodos marcados (<span id="qtd">0</span>)</h2>
+      <div class="tabela-wrap">
+        <table class="tabela" id="tab">
+          <thead><tr><th>Pessoa</th><th>Tipo</th><th>Início</th><th>Fim</th><th>Dias</th><th>Situação</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>Controle de Plantão · dados locais neste navegador</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="rotacao.js"></script>
+  <script src="db.js"></script>
+  <script src="store.js"></script>
+  <script src="sync.js"></script>
+  <script src="nav.js"></script>
+  <script src="ferias.js"></script>
+  <script src="boot.js"></script>
+</body>
+</html>

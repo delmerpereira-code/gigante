@@ -6,17 +6,18 @@
   <title>Controle de Plantão</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-page="escala">
   <header>
     <h1>Controle de Plantão</h1>
-    <p>Ciclo de 120 h (5 dias) · rotação ancorada em 01/09/2026 · <span id="coringas"></span></p>
+    <p>Ciclo de 120 h (5 dias) · rotação ancorada em <span id="ancora">01/09/2026</span> · <span id="coringas"></span></p>
   </header>
+  <div id="nav"></div>
 
   <main>
-    <div class="aviso">
-      1ª entrega — apenas o <strong>motor de rotação</strong> e a leitura da escala.
-      Os nomes das duplas vêm de um elenco de exemplo (planilha de setembro/2026) e serão
-      substituídos pelo cadastro real. Cálculos de banco de horas e eventos ainda não persistem.
+    <div class="aviso" id="avisoElenco">
+      As duplas abaixo vêm do <strong>cadastro de funcionários</strong>. Se estiver vazio,
+      mostramos o elenco de exemplo da planilha de setembro/2026 —
+      <a href="cadastro.html">cadastre os nomes reais aqui</a>.
     </div>
 
     <section class="card">
@@ -60,7 +61,14 @@
 
   <footer>Controle de Plantão · v0.1 · uso interno</footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <script src="rotacao.js"></script>
+  <script src="db.js"></script>
+  <script src="store.js"></script>
+  <script src="sync.js"></script>
+  <script src="nav.js"></script>
   <script src="app.js"></script>
+  <script src="boot.js"></script>
 </body>
 </html>

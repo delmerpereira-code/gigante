@@ -6,17 +6,44 @@
   'use strict';
 
   var R = window.Rotacao;
+  var S = window.Store;
+  var CFG = S ? S.rotacaoConfig() : R.CONFIG_PADRAO;
 
-  // Elenco de exemplo, lido da planilha "SETEMBRO/2026". Substituível pelo
-  // cadastro real quando a API entrar. 2ª coringa ainda a confirmar.
-  var PLANTOES = {
-    'PL I':   { classe: 'pl-PLI',   nomes: 'Cássia + Geciane' },
-    'PL II':  { classe: 'pl-PLII',  nomes: 'Elizete + Maryah' },
-    'PL III': { classe: 'pl-PLIII', nomes: 'Melanye + Nádia' },
-    'PL IV':  { classe: 'pl-PLIV',  nomes: 'Camila + Patrício' },
-    'PL V':   { classe: 'pl-PLV',   nomes: 'Adriana + Célia' }
+  var CLASSE_PL = {
+    'PL I': 'pl-PLI', 'PL II': 'pl-PLII', 'PL III': 'pl-PLIII', 'PL IV': 'pl-PLIV', 'PL V': 'pl-PLV'
   };
-  var CORINGAS = ['Tainá', '(2ª a confirmar)'];
+
+  // Elenco de exemplo (planilha "SETEMBRO/2026"), usado só quando o cadastro
+  // ainda está vazio.
+  var EXEMPLO = {
+    'PL I':   'Cássia + Geciane',
+    'PL II':  'Elizete + Maryah',
+    'PL III': 'Melanye + Nádia',
+    'PL IV':  'Camila + Patrício',
+    'PL V':   'Adriana + Célia'
+  };
+
+  var PLANTOES = {}, CORINGAS = [];
+  function carregarElenco() {
+    PLANTOES = {};
+    var duplas = S ? S.plantoes() : [];
+    var temCadastro = duplas.some(function (d) { return d.pessoa_1 || d.pessoa_2; });
+    CFG = S ? S.rotacaoConfig() : R.CONFIG_PADRAO;
+    CFG.ordem.forEach(function (cod) {
+      var nomes;
+      if (temCadastro) {
+        var d = duplas.filter(function (x) { return x.codigo === cod; })[0] || {};
+        nomes = [d.pessoa_1, d.pessoa_2].filter(Boolean).join(' + ') || '(sem dupla)';
+      } else {
+        nomes = EXEMPLO[cod] || '';
+      }
+      PLANTOES[cod] = { classe: CLASSE_PL[cod] || '', nomes: nomes };
+    });
+    CORINGAS = (S && S.coringas().length) ? S.coringas()
+             : (temCadastro ? [] : ['Tainá', '(2ª a confirmar)']);
+    var av = document.getElementById('avisoElenco');
+    if (av) av.hidden = temCadastro;
+  }
 
   var DOW = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
   var MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho',
@@ -39,7 +66,7 @@
 
     for (var d = 1; d <= totalDias; d++) {
       var data = new Date(ano, mes, d);
-      var t = R.turnosDoDia(data);
+      var t = R.turnosDoDia(data, CFG);
       var fds = data.getDay() === 0 || data.getDay() === 6;
 
       var div = document.createElement('div');
@@ -71,7 +98,7 @@
     var lista = document.getElementById('estadoLista');
     lista.innerHTML = '';
     Object.keys(PLANTOES).forEach(function (pl) {
-      var e = R.estadoEm(pl, inst);
+      var e = R.estadoEm(pl, inst, CFG);
       var cls = ESTADO_ROT[e.estado];
       var item = document.createElement('div');
       item.className = 'estado-item ' + cls;
@@ -94,7 +121,7 @@
     var box = document.getElementById('simResultado');
     if (!dataHora) { box.textContent = 'Informe data e hora da convocação.'; return; }
 
-    var r = R.avaliarConvocacao(pl, new Date(dataHora), horas);
+    var r = R.avaliarConvocacao(pl, new Date(dataHora), horas, CFG);
     box.className = 'resultado ' + (r.irregular ? 'irregular' : 'ok');
     var linhas =
       '<tr><td>Estado no momento</td><td>' + r.estado + '</td></tr>' +
@@ -116,8 +143,15 @@
   }
 
   // ---- init --------------------------------------------------------
-  document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('coringas').textContent = 'Coringas: ' + CORINGAS.join(', ');
+  document.addEventListener('dados-prontos', function () {
+    carregarElenco();
+    var elAnc = document.getElementById('ancora');
+    if (elAnc && CFG.ancora) {
+      var p = String(CFG.ancora).split('-');
+      if (p.length === 3) elAnc.textContent = p[2] + '/' + p[1] + '/' + p[0];
+    }
+    document.getElementById('coringas').textContent =
+      CORINGAS.length ? 'Coringas: ' + CORINGAS.join(', ') : 'sem coringas cadastradas';
     document.getElementById('prev').addEventListener('click', function () { mover(-1); });
     document.getElementById('next').addEventListener('click', function () { mover(1); });
     document.getElementById('hoje').addEventListener('click', function () {

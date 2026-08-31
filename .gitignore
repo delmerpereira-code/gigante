@@ -3,6 +3,10 @@
 .clasprc.json
 apps-script/.clasp.json
 
+# Supabase — URL e chave anon do projeto (cada máquina cria a sua)
+web/config.js
+supabase/.env
+
 # node
 node_modules/
 

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calendário · Controle de Plantão</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="calendario">
+  <header>
+    <h1>Controle de Plantão</h1>
+    <p>Visão geral do mês — rotação, férias, licenças, sobreaviso e permutas</p>
+  </header>
+  <div id="nav"></div>
+
+  <main>
+    <div class="aviso" id="avisoVazio" hidden>
+      Nenhum funcionário cadastrado. Vá em <a href="cadastro.html">Funcionários</a>
+      (é preciso estar como <b>Gerente</b>) e carregue o elenco.
+    </div>
+
+    <section class="card">
+      <div class="toolbar">
+        <button id="prev">◀</button>
+        <span class="mes-atual" id="mesAtual">—</span>
+        <button id="next">▶</button>
+        <button id="hoje">Hoje</button>
+        <span class="spacer"></span>
+        <label class="inline">Filtro
+          <select id="filtro">
+            <option value="">Todos</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="cal-legenda">
+        <span><i class="lg lg-t1"></i> 1º turno</span>
+        <span><i class="lg lg-t2"></i> 2º turno</span>
+        <span><i class="lg lg-fer"></i> férias</span>
+        <span><i class="lg lg-lic"></i> licença</span>
+        <span><i class="lg lg-sob"></i> sobreaviso</span>
+        <span><i class="lg lg-conv"></i> convocação</span>
+        <span><i class="lg lg-perm"></i> permuta</span>
+      </div>
+
+      <div class="cal-wrap">
+        <table class="cal" id="cal"></table>
+      </div>
+    </section>
+
+    <section class="card" id="cardAlertas">
+      <h2>Alertas do mês</h2>
+      <ul id="alertas" class="lista-alertas"></ul>
+    </section>
+  </main>
+
+  <footer>Controle de Plantão · dados locais neste navegador</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="rotacao.js"></script>
+  <script src="db.js"></script>
+  <script src="store.js"></script>
+  <script src="sync.js"></script>
+  <script src="nav.js"></script>
+  <script src="calendario.js"></script>
+  <script src="boot.js"></script>
+</body>
+</html>

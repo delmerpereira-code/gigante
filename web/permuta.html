@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Permuta · Controle de Plantão</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="permuta">
+  <header>
+    <h1>Controle de Plantão</h1>
+    <p>Permuta de turno — acordo entre funcionários, com termo e aprovação do Líder</p>
+  </header>
+  <div id="nav"></div>
+
+  <main>
+    <div class="aviso" id="avisoVazio" hidden>
+      Cadastre os funcionários primeiro (como <b>Líder</b>, em
+      <a href="cadastro.html">Funcionários</a>).
+    </div>
+
+    <section class="card no-print">
+      <h2>Nova permuta</h2>
+      <form id="form" class="grid-form">
+        <label>Quem passa o turno (A)
+          <select id="pA"></select>
+        </label>
+        <label>Contraparte (B)
+          <select id="pB"></select>
+        </label>
+        <label class="wide">Turno que <b id="lblA">A</b> passa para <b id="lblB">B</b>
+          <select id="turnoA"></select>
+        </label>
+        <label class="inline-check">
+          <input type="checkbox" id="maoDupla"> Troca de dia (cada um cobre o turno do outro — sem dívida)
+        </label>
+        <label class="wide" id="wrapTurnoB" hidden>Turno que <b id="lblB2">B</b> passa para <b id="lblA2">A</b>
+          <select id="turnoB"></select>
+        </label>
+        <label class="wide">Observação
+          <input type="text" id="obs" autocomplete="off">
+        </label>
+        <div class="form-acoes">
+          <button type="submit" class="primario">Propor permuta</button>
+          <span id="formErro" class="erro"></span>
+        </div>
+      </form>
+      <p class="muted small" id="semTurnos" hidden>
+        A pessoa escolhida não tem plantão fixo (regime "Plantão") — sem turnos para permutar.
+      </p>
+    </section>
+
+    <section class="card no-print">
+      <h2>Minhas contas de permuta</h2>
+      <div id="contas" class="chips"></div>
+      <form id="formQuita" class="grid-form" style="margin-top:12px" hidden>
+        <label>Quem pagou
+          <select id="qDe"></select>
+        </label>
+        <label>Quem recebeu
+          <select id="qPara"></select>
+        </label>
+        <label>Horas quitadas
+          <input type="number" id="qHoras" step="0.5" min="0">
+        </label>
+        <label class="wide">Como (folga, dinheiro, outra permuta…)
+          <input type="text" id="qObs" autocomplete="off">
+        </label>
+        <div class="form-acoes">
+          <button type="submit">Registrar quitação</button>
+          <button type="button" id="qCancel">Fechar</button>
+          <span id="qErro" class="erro"></span>
+        </div>
+      </form>
+      <button id="btnQuita" class="link no-print">registrar uma quitação…</button>
+    </section>
+
+    <section class="card no-print">
+      <h2>Permutas (<span id="qtd">0</span>)</h2>
+      <div id="lista"></div>
+    </section>
+
+    <section class="card termo" id="cardTermo" hidden>
+      <div class="no-print" style="display:flex;gap:8px;margin-bottom:10px">
+        <button id="btnImprimir" class="primario">Imprimir / PDF</button>
+        <button id="btnFecharTermo">Fechar termo</button>
+      </div>
+      <div id="termo"></div>
+    </section>
+  </main>
+
+  <footer class="no-print">Controle de Plantão · dados locais neste navegador</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="rotacao.js"></script>
+  <script src="db.js"></script>
+  <script src="store.js"></script>
+  <script src="sync.js"></script>
+  <script src="nav.js"></script>
+  <script src="permuta.js"></script>
+  <script src="boot.js"></script>
+</body>
+</html>

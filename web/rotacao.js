@@ -43,6 +43,41 @@
     return Math.round((meiaNoite(b) - meiaNoite(a)) / MS_DIA);
   }
 
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function isoData(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  /**
+   * Próximos turnos de um plantão a partir de uma data/hora.
+   * Cada item: { data 'YYYY-MM-DD', parte 'diurno'|'noturno', inicio Date, fim Date, plantao, horas }.
+   *   diurno  = D 08:00 → D 20:00
+   *   noturno = D 20:00 → D+1 08:00
+   */
+  function proximosTurnos(plantao, desde, quantos, config) {
+    var cfg = config || CONFIG_PADRAO;
+    var ref = parseData(desde);
+    var out = [];
+    var d = meiaNoite(ref);
+    for (var i = 0; i < 400 && out.length < (quantos || 8); i++) {
+      var f = fase(plantao, d, cfg);
+      if (f === 0 || f === 1) {
+        var ini = new Date(d), fim = new Date(d);
+        if (f === 0) { ini.setHours(8, 0, 0, 0); fim.setHours(20, 0, 0, 0); }
+        else { ini.setHours(20, 0, 0, 0); fim.setDate(fim.getDate() + 1); fim.setHours(8, 0, 0, 0); }
+        if (fim > ref) {
+          out.push({
+            data: isoData(d), parte: f === 0 ? 'diurno' : 'noturno',
+            inicio: ini, fim: fim, plantao: plantao,
+            horas: Math.round((fim - ini) / 3600000)
+          });
+        }
+      }
+      d = new Date(d.getTime() + MS_DIA);
+    }
+    return out;
+  }
+
   // --- Núcleo --------------------------------------------------------------
 
   /**
@@ -161,7 +196,9 @@
     turnosDoDia: turnosDoDia,
     inicioCicloCorrente: inicioCicloCorrente,
     estadoEm: estadoEm,
-    avaliarConvocacao: avaliarConvocacao
+    avaliarConvocacao: avaliarConvocacao,
+    proximosTurnos: proximosTurnos,
+    isoData: isoData
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;

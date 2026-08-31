@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar · Controle de Plantão</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="login">
+  <main style="max-width:380px;margin:8vh auto">
+    <section class="card">
+      <h1 style="font-size:1.1rem;margin:0 0 4px">Controle de Plantão</h1>
+      <p class="muted small" style="margin:0 0 16px">Entre com seu e-mail e senha.</p>
+      <form id="form" class="grid-form" style="grid-template-columns:1fr">
+        <label>E-mail
+          <input type="email" id="email" autocomplete="username" required>
+        </label>
+        <label>Senha
+          <input type="password" id="senha" autocomplete="current-password" required>
+        </label>
+        <div class="form-acoes">
+          <button type="submit" class="primario" id="btn">Entrar</button>
+          <span id="erro" class="erro"></span>
+        </div>
+      </form>
+      <p class="muted small" id="semConfig" hidden>
+        Supabase ainda não configurado — preencha <code>web/config.js</code>.
+      </p>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="db.js"></script>
+  <script>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+      document.addEventListener('DOMContentLoaded', function () {
+        if (!DB.configurado) { $('semConfig').hidden = false; $('btn').disabled = true; return; }
+        DB.sessao().then(function (s) { if (s) location.replace('calendario.html'); });
+        $('form').addEventListener('submit', function (e) {
+          e.preventDefault();
+          $('erro').textContent = ''; $('btn').disabled = true;
+          DB.entrar($('email').value.trim(), $('senha').value)
+            .then(function () { location.replace('calendario.html'); })
+            .catch(function (err) {
+              $('erro').textContent = /Invalid login/i.test(err.message) ? 'E-mail ou senha inválidos.' : err.message;
+              $('btn').disabled = false;
+            });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
