@@ -210,8 +210,8 @@
     }
     function libsDoc() {
       if ((window.PizZip) && (window.docxtemplater || window.Docxtemplater)) return Promise.resolve();
-      return loadScript('https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.7/pizzip.min.js')
-        .then(function () { return loadScript('https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.44.0/docxtemplater.js'); });
+      return loadScript('https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js')
+        .then(function () { return loadScript('https://cdn.jsdelivr.net/npm/docxtemplater@3.44.0/build/docxtemplater.js'); });
     }
     function xis(v) { return v ? 'X' : ''; }
     function qualificacao(f, comExp) {
