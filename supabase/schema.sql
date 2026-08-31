@@ -99,8 +99,8 @@ create table banco_horas (
 );
 create index on banco_horas (funcionario_id, data_hora);
 
--- saldo corrente por funcionário
-create view v_saldo_banco as
+-- saldo corrente por funcionário  (security_invoker: a view respeita o RLS de quem consulta)
+create view v_saldo_banco with (security_invoker = on) as
 select f.id as funcionario_id, f.nome_curto,
        f.saldo_inicial_banco
        + coalesce(sum(case when b.sentido='entrada' then b.horas else -b.horas end),0) as saldo
@@ -108,8 +108,8 @@ from funcionarios f
 left join banco_horas b on b.funcionario_id = f.id
 group by f.id;
 
--- extrato com saldo acumulado (para a tela Banco de horas)
-create view v_extrato_banco as
+-- extrato com saldo acumulado
+create view v_extrato_banco with (security_invoker = on) as
 select b.*,
        f.saldo_inicial_banco
        + sum(case when b.sentido='entrada' then b.horas else -b.horas end)

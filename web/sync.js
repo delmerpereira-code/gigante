@@ -118,7 +118,7 @@
     return DB.rpc('permutas_expirar').catch(function () {}).then(function () {
       return Promise.all([
         DB.all('funcionarios'), DB.all('config'), DB.all('eventos'),
-        DB.all('v_extrato_banco'), DB.all('permutas'),
+        DB.all('banco_horas'), DB.all('permutas'),
         DB.all('permuta_historico'), DB.all('conta_permutas')
       ]);
     }).then(function (res) {

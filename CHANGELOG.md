@@ -6,6 +6,19 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ## [Não lançado]
 
+### Alterado — formato app (PWA, estilo SIF Fluxo Produtivo)
+- Frontend reconstruído como **página única** (`web/index.html` + `app.js` + `app.css`):
+  login → tela inicial com cartões de módulo → cada módulo abre/volta pelo botão ◀.
+- **PWA**: `manifest.json`, `sw.js` (offline), `icon.svg`, instalável na tela inicial,
+  sem zoom, alvos de toque grandes.
+- Design system IBM Plex Sans/Mono, teal `#0A6E6E` + laranja `#E07020`; modais que
+  sobem de baixo, toast, spinner.
+- Cada tela virou um módulo em `web/telas/*.js` (`App.registrarTela`). Removidos os
+  HTMLs por página, `nav.js`, `boot.js`, `login.html`, `style.css`.
+- `store.js`/`sync.js`/`rotacao.js`/`db.js`/`foto.js` **inalterados na lógica** —
+  `uid()` agora gera UUID v4 em qualquer contexto (celular via http).
+- `supabase/schema_delta_2.sql`: `security_invoker` nas views (respeitar RLS).
+
 ### Adicionado
 - Camada de dados local `web/store.js` (localStorage, com fallback em memória para
   testes no Node). Coleções espelham as abas da planilha — migração futura é só
