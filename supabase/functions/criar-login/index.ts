@@ -41,9 +41,9 @@ Deno.serve(async (req) => {
     if (ehLider !== true) return json({ ok: false, error: "Só o líder pode criar acessos." }, 200);
 
     const { matricula, email, senha } = await req.json().catch(() => ({}));
-    const ident = String(matricula ?? email ?? "").trim().toLowerCase();
+    const ident = String(email ?? matricula ?? "").trim().toLowerCase();
     const pass = String(senha ?? "");
-    if (!ident) return json({ ok: false, error: "Informe a matrícula." }, 200);
+    if (!ident) return json({ ok: false, error: "Informe o e-mail." }, 200);
     if (pass.length < 6) return json({ ok: false, error: "A senha precisa de pelo menos 6 caracteres." }, 200);
 
     const loginEmail = ident.includes("@")
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     if (error) {
       const m = error.message || String(error);
       if (/already been registered|already exists/i.test(m)) {
-        return json({ ok: false, error: "Já existe uma conta para essa matrícula." }, 200);
+        return json({ ok: false, error: "Já existe uma conta com esse e-mail." }, 200);
       }
       return json({ ok: false, error: m }, 200);
     }

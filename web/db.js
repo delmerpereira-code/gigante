@@ -65,9 +65,9 @@
      * (usa a chave admin no servidor — sem limite de e-mail, sem validação chata).
      * Devolve o user_id.
      */
-    criarLogin: function (matricula, senha) {
+    criarLogin: function (email, senha) {
       if (!client) return Promise.reject(new Error('Supabase não configurado.'));
-      return client.functions.invoke('criar-login', { body: { matricula: matricula, senha: senha } })
+      return client.functions.invoke('criar-login', { body: { email: email, senha: senha } })
         .then(function (r) {
           if (r.error) {
             var m = (r.error && r.error.message) || String(r.error);

@@ -1,8 +1,8 @@
 # Edge Function `criar-login`
 
-Cria a conta de acesso de um funcionário (login = matrícula) usando a chave admin
-do projeto — assim **não** esbarra no limite de ~2 e-mails/hora do signup nem na
-validação de domínio.
+Cria a conta de acesso de um funcionário (**login = e-mail cadastrado**) usando a
+chave admin do projeto — assim **não** esbarra no limite de ~2 e-mails/hora do
+signup comum.
 
 ## Publicar pelo painel (mais fácil)
 

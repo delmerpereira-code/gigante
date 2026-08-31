@@ -31,7 +31,7 @@
       '<div class="campo wide" style="border-top:1px solid var(--border);padding-top:12px">' +
         '<label>Login</label><div id="fc-login-info" class="card-sub" style="margin-bottom:6px"></div>' +
         '<input type="text" id="fc-senha" placeholder="senha inicial (mín. 6)" autocomplete="off">' +
-        '<div class="card-sub" style="margin-top:4px">O login é a <b>matrícula</b> (acima). A pessoa entra com matrícula + senha e troca a senha em "Meu cadastro".</div>' +
+        '<div class="card-sub" style="margin-top:4px">O login é o <b>e-mail (contato)</b> acima. A pessoa entra com e-mail + senha e troca a senha em "Meu cadastro".</div>' +
       '</div>' +
       '</div><div class="card-acoes"><button class="pri" id="fc-salvar">Salvar</button><button id="fc-cancelar" hidden>Cancelar</button><span class="erro" id="fc-erro"></span></div>';
     corpo.appendChild(card);
@@ -45,16 +45,15 @@
       card.querySelectorAll('input').forEach(function (i) { i.value = i.id === 'fc-saldo' ? '0' : (i.id === 'fc-df' ? '30' : ''); });
       $('#fc-fbox').textContent = 'sem foto'; $('#fc-tit').textContent = 'Novo funcionário';
       $('#fc-cancelar').hidden = true; $('#fc-erro').textContent = '';
-      $('#fc-login-info').textContent = 'Defina a matrícula + senha inicial para criar o acesso.';
-      $('#fc-senha').disabled = false; $('#fc-mat').disabled = false;
+      $('#fc-login-info').textContent = 'Defina e-mail (contato) + senha inicial para criar o acesso.';
+      $('#fc-senha').disabled = false;
       togglePl();
     }
     function editar(f) {
       editId = f.id; fotoAtual = f.foto || '';
       var temLogin = !!f.auth_user_id;
-      $('#fc-login-info').textContent = temLogin ? '✓ login já criado (matrícula ' + (f.matricula || '?') + ')' : 'Sem login — defina matrícula + senha e salve.';
+      $('#fc-login-info').textContent = temLogin ? '✓ login já criado' + (f.email ? ' (' + f.email + ')' : '') : 'Sem login — defina e-mail + senha e salve.';
       $('#fc-senha').value = ''; $('#fc-senha').disabled = temLogin;
-      $('#fc-mat').disabled = temLogin;
       $('#fc-email-c').value = f.email || '';
       $('#fc-mat').value = f.matricula || ''; $('#fc-nc').value = f.nome_completo || ''; $('#fc-ns').value = f.nome_curto || '';
       $('#fc-c1').value = f.celular || ''; $('#fc-c2').value = f.celular2 || ''; $('#fc-nasc').value = f.nascimento || '';
@@ -81,15 +80,15 @@
     }
     function salvar() {
       $('#fc-erro').textContent = '';
-      var matricula = $('#fc-mat').value.trim(), senha = $('#fc-senha').value;
+      var loginEmail = $('#fc-email-c').value.trim(), senha = $('#fc-senha').value;
       var criarLogin = !$('#fc-senha').disabled && !!senha;
       try {
         var p;
         if (criarLogin) {
-          if (!matricula) throw new Error('Defina a matrícula — é o login da pessoa.');
+          if (!/^\S+@\S+\.\S+$/.test(loginEmail)) throw new Error('Preencha um e-mail válido — é o login da pessoa.');
           if (senha.length < 6) throw new Error('A senha precisa de pelo menos 6 caracteres.');
           A.loading(true, 'CRIANDO ACESSO');
-          p = window.Sync.criarLogin(matricula, senha).then(function (uid) { A.loading(false); return gravar(uid); });
+          p = window.Sync.criarLogin(loginEmail, senha).then(function (uid) { A.loading(false); return gravar(uid); });
         } else {
           p = gravar(null);
         }
