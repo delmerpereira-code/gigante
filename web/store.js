@@ -62,9 +62,23 @@
   }
 
   // ─── helpers ──────────────────────────────────────────────────────────────
+  /** UUID v4 — funciona em qualquer contexto (http, file://, celular). */
   function uid() {
     try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID(); } catch (e) { /* */ }
-    return 'x' + Date.now().toString(16) + Math.random().toString(16).slice(2, 10);
+    var b = new Array(16), rnd;
+    try {
+      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        var a = new Uint8Array(16); crypto.getRandomValues(a);
+        for (var i = 0; i < 16; i++) b[i] = a[i];
+      } else { throw 0; }
+    } catch (e2) {
+      for (var j = 0; j < 16; j++) b[j] = Math.floor(Math.random() * 256);
+    }
+    b[6] = (b[6] & 0x0f) | 0x40;   // versão 4
+    b[8] = (b[8] & 0x3f) | 0x80;   // variante
+    var h = b.map(function (n) { return (n + 0x100).toString(16).slice(1); });
+    return h[0] + h[1] + h[2] + h[3] + '-' + h[4] + h[5] + '-' + h[6] + h[7] + '-' +
+           h[8] + h[9] + '-' + h[10] + h[11] + h[12] + h[13] + h[14] + h[15];
   }
   function r2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
   function horasEntre(ini, fim) { return (new Date(fim) - new Date(ini)) / 3600000; }
