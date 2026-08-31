@@ -31,7 +31,8 @@
       '<div class="campo wide" style="border-top:1px solid var(--border);padding-top:12px">' +
         '<label>Login</label><div id="fc-login-info" class="card-sub" style="margin-bottom:6px"></div>' +
         '<input type="text" id="fc-senha" placeholder="senha inicial (mín. 6)" autocomplete="off">' +
-        '<div class="card-sub" style="margin-top:4px">O login é o <b>e-mail (contato)</b> acima. A pessoa entra com e-mail + senha e troca a senha em "Meu cadastro".</div>' +
+        '<div class="card-acoes" style="margin-top:6px"><button id="fc-reset" type="button" hidden>Redefinir senha</button></div>' +
+        '<div class="card-sub" style="margin-top:4px">O login é o <b>e-mail (contato)</b> acima. A pessoa entra com e-mail + senha e depois troca a senha em "Meu cadastro".</div>' +
       '</div>' +
       '</div><div class="card-acoes"><button class="pri" id="fc-salvar">Salvar</button><button id="fc-cancelar" hidden>Cancelar</button><span class="erro" id="fc-erro"></span></div>';
     corpo.appendChild(card);
@@ -46,14 +47,27 @@
       $('#fc-fbox').textContent = 'sem foto'; $('#fc-tit').textContent = 'Novo funcionário';
       $('#fc-cancelar').hidden = true; $('#fc-erro').textContent = '';
       $('#fc-login-info').textContent = 'Defina e-mail (contato) + senha inicial para criar o acesso.';
-      $('#fc-senha').disabled = false;
+      $('#fc-senha').disabled = false; $('#fc-senha').placeholder = 'senha inicial (mín. 6)';
+      $('#fc-reset').hidden = true;
       togglePl();
     }
     function editar(f) {
       editId = f.id; fotoAtual = f.foto || '';
-      var temLogin = !!f.auth_user_id;
-      $('#fc-login-info').textContent = temLogin ? '✓ login já criado' + (f.email ? ' (' + f.email + ')' : '') : 'Sem login — defina e-mail + senha e salve.';
-      $('#fc-senha').value = ''; $('#fc-senha').disabled = temLogin;
+      var temLogin = !!f.auth_user_id, ehLiderAlvo = f.lider === 'sim';
+      var ehEuMesmo = false;
+      try { ehEuMesmo = window.Sync && Sync.modo === 'db' && S.papelAtual().nome === f.nome_curto; } catch (e) {}
+      $('#fc-senha').value = ''; $('#fc-senha').placeholder = 'senha inicial (mín. 6)';
+      if (!temLogin) {
+        $('#fc-login-info').textContent = 'Sem login — defina e-mail + senha e salve.';
+        $('#fc-senha').disabled = false; $('#fc-reset').hidden = true;
+      } else if (ehLiderAlvo && !ehEuMesmo) {
+        $('#fc-login-info').innerHTML = '✓ login de líder/administrador' + (f.email ? ' (' + A.esc(f.email) + ')' : '') +
+          ' — por segurança, só a própria pessoa troca essa senha, em <b>Meu cadastro</b>.';
+        $('#fc-senha').disabled = true; $('#fc-reset').hidden = true;
+      } else {
+        $('#fc-login-info').textContent = '✓ login já criado' + (f.email ? ' (' + f.email + ')' : '');
+        $('#fc-senha').disabled = true; $('#fc-reset').hidden = false;
+      }
       $('#fc-email-c').value = f.email || '';
       $('#fc-mat').value = f.matricula || ''; $('#fc-nc').value = f.nome_completo || ''; $('#fc-ns').value = f.nome_curto || '';
       $('#fc-c1').value = f.celular || ''; $('#fc-c2').value = f.celular2 || ''; $('#fc-nasc').value = f.nascimento || '';
@@ -134,6 +148,11 @@
       window.Foto.reduzir(file, 220, function (err, url) { if (err) { $('#fc-erro').textContent = err.message; return; } fotoAtual = url; $('#fc-fbox').innerHTML = '<img src="' + url + '">'; });
     });
     $('#fc-frm').addEventListener('click', function () { fotoAtual = ''; $('#fc-fbox').textContent = 'sem foto'; $('#fc-foto').value = ''; });
+    $('#fc-reset').addEventListener('click', function () {
+      $('#fc-senha').disabled = false; $('#fc-senha').placeholder = 'nova senha (mín. 6)';
+      $('#fc-senha').focus(); this.hidden = true;
+      $('#fc-login-info').textContent = 'Digite a nova senha e clique em Salvar. A pessoa deve trocá-la depois em "Meu cadastro".';
+    });
     $('#fc-salvar').addEventListener('click', salvar);
     $('#fc-cancelar').addEventListener('click', limpar);
     togglePl(); render();

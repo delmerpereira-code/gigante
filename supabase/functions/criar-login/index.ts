@@ -32,6 +32,9 @@ Deno.serve(async (req) => {
     if (e1) return json({ ok: false, error: e1.message });
     if (ehLider !== true) return json({ ok: false, error: "So o lider pode criar acessos." });
 
+    const { data: caller } = await asUser.auth.getUser();
+    const callerId = caller?.user?.id ?? null;
+
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const email = String(body.email ?? body.matricula ?? "").trim().toLowerCase();
     const pass = String(body.senha ?? "");
@@ -45,6 +48,19 @@ Deno.serve(async (req) => {
     const existente = lista?.users?.find((u) => (u.email ?? "").toLowerCase() === email);
 
     if (existente) {
+      // Conta de lider/administrador ja existente: so a propria pessoa troca a
+      // senha (em "Meu cadastro"). Outro lider nao pode resetar.
+      const { data: alvo } = await admin
+        .from("funcionarios")
+        .select("lider")
+        .eq("auth_user_id", existente.id)
+        .maybeSingle();
+      if (alvo?.lider === true && existente.id !== callerId) {
+        return json({
+          ok: false,
+          error: "Conta de lider/administrador: so a propria pessoa troca a senha, em \"Meu cadastro\".",
+        });
+      }
       // reaproveita: reseta a senha para a informada e confirma o e-mail
       await admin.auth.admin.updateUserById(existente.id, { password: pass, email_confirm: true });
       return json({ ok: true, user_id: existente.id, login_email: email, ja_existia: true });
