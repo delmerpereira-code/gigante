@@ -174,17 +174,17 @@
       rs.appendChild(grid);
     }
 
-    // módulos
-    var wrap = $('home-cards');
-    wrap.innerHTML = '';
+    // módulos — barra de ícones no rodapé
+    var bar = $('mod-launcher');
+    bar.innerHTML = '';
     Object.keys(telas).forEach(function (n) {
       var t = telas[n];
       if (t.acesso === 'lider' && !lider) return;
       var badge = t.contador ? t.contador() : null;
-      wrap.appendChild(App.h('button', { class: 'mod-card', onclick: function () { App.abrirModulo(n); } }, [
-        App.h('span', { class: 'ic', text: t.icone }),
-        App.h('span', {}, [App.h('span', { class: 'nome', text: t.titulo }), App.h('span', { class: 'desc', text: t.desc })]),
-        (badge ? App.h('span', { class: 'badge-n', text: String(badge) }) : null)
+      bar.appendChild(App.h('button', { class: 'ml-item', onclick: function () { App.abrirModulo(n); } }, [
+        App.h('span', { class: 'ml-ic', text: t.icone }),
+        App.h('span', { class: 'ml-nome', text: t.titulo }),
+        (badge ? App.h('span', { class: 'ml-badge', text: String(badge) }) : null)
       ]));
     });
   }
