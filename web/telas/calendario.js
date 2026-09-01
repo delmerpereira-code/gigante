@@ -125,7 +125,9 @@
       }
       evs.forEach(function (e) {
         if (e.pessoa !== p.nome_curto || !MARCA[e.tipo] || !cobreDia(e.inicio, e.fim, dia)) return;
+        if (e.situacao === 'rejeitada') return;
         var m = MARCA[e.tipo];
+        var solic = e.tipo === 'ferias' && e.situacao === 'solicitada';
         // férias/licença de plantonista: marca só nos dias de turno do plantão dele;
         // nos dias de folga apenas registra (fica só o sombreado claro)
         if ((e.tipo === 'ferias' || e.tipo === 'licenca_medica') && p.regime === 'plantao' && p.plantao) {
@@ -133,8 +135,8 @@
           if (fp !== 0 && fp !== 1) { ausente = true; tit.push(e.tipo + ' (folga)'); return; }
         }
         var extra = (e.tipo === 'ferias' && e.nivel && e.nivel !== 'livre') ? ' ' + e.nivel : '';
-        mk += '<i class="mk ' + m.c + extra + '">' + m.s + '</i>';
-        tit.push(e.tipo + (e.obs ? ' ' + e.obs : ''));
+        mk += '<i class="mk ' + m.c + extra + (solic ? ' pend' : '') + '">' + m.s + (solic ? '?' : '') + '</i>';
+        tit.push((solic ? 'solicitação de ' : '') + e.tipo + (e.obs ? ' ' + e.obs : ''));
       });
       return '<td class="c ' + base + (ausente ? ' aus' : '') + '" title="' + A.esc(tit.join(' | ')) + '">' + mk + '</td>';
     }

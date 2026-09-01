@@ -137,6 +137,27 @@ checa('expediente cobrindo: sem quebra automática', !evExp.quebraCarga || evExp
 checa('expediente cobrindo: nada no banco', Store.bancoHoras().filter(function (l) { return l.pessoa === 'Expedito'; }).length === 0);
 checa('avaliarCoberturas ignora expediente', Store.avaliarCoberturas('Expedito', null, undefined).length === 0);
 
+// ── fluxo de aprovação de férias ────────────────────────────────────────
+Store.limparTudo(); Store.seedElencoExemplo();
+Store.funcionarios().forEach(function (f) { if (f.nome_curto === 'Cássia') Store.salvarFuncionario({ id: f.id, lider: 'sim' }, false); });
+
+Store.setVerComo('Camila'); // servidora
+var sol = Store.salvarEvento({ tipo: 'ferias', pessoa: 'Camila', inicio: '2026-12-01', fim: '2026-12-10' });
+checa('servidor: férias entra como "solicitada"', Store.eventos().filter(function (e) { return e.id === sol.id; })[0].situacao === 'solicitada');
+checa('solicitada NÃO consome saldo', Store.saldoFerias('Camila', 2026).consumido === 0, Store.saldoFerias('Camila', 2026).consumido);
+checa('servidor não pode decidir', (function () { try { Store.decidirFerias(sol.id, 'aprovar', {}); return false; } catch (e) { return true; } })());
+
+Store.setVerComo('Cássia'); // líder
+checa('rejeitar sem justificativa falha', (function () { try { Store.decidirFerias(sol.id, 'rejeitar', {}); return false; } catch (e) { return true; } })());
+Store.decidirFerias(sol.id, 'aprovar', {});
+checa('após aprovar: situacao aprovada', Store.eventos().filter(function (e) { return e.id === sol.id; })[0].situacao === 'aprovada');
+checa('aprovada consome saldo (10 dias)', Store.saldoFerias('Camila', 2026).consumido === 10, Store.saldoFerias('Camila', 2026).consumido);
+
+var sol2 = Store.salvarEvento({ tipo: 'ferias', pessoa: 'Patrício', inicio: '2026-12-01', fim: '2026-12-05' });
+Store.decidirFerias(sol2.id, 'modificar', { inicio: '2026-12-15', fim: '2026-12-19', justificativa: 'conflito com a dupla' });
+var e2 = Store.eventos().filter(function (e) { return e.id === sol2.id; })[0];
+checa('modificar: novas datas + aprovada + justificativa', e2.inicio.slice(0, 10) === '2026-12-15' && e2.situacao === 'aprovada' && /conflito/.test(e2.justificativa), JSON.stringify(e2));
+
 console.log('\n' + ok + ' ok, ' + falhas + ' falha(s).');
 Store.limparTudo();
 Store.setVerComo('Lider');

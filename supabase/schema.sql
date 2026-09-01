@@ -81,6 +81,9 @@ create table eventos (
   irregular      boolean not null default false,
   nivel          nivel_ferias_t,
   obs            text not null default '',
+  situacao       text,                          -- férias: solicitada|aprovada|rejeitada
+  justificativa  text not null default '',      -- texto do líder ao rejeitar/modificar
+  decidido_por   text not null default '',
   criado_em      timestamptz not null default now()
 );
 create index on eventos (funcionario_id);

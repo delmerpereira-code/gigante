@@ -23,8 +23,9 @@
   function ausenciaDe(nome, d) {
     var dia = iso(d);
     return S.eventos().filter(function (e) {
-      return (e.tipo === 'ferias' || e.tipo === 'licenca_medica') && e.pessoa === nome &&
-        String(e.inicio).slice(0, 10) <= dia && dia <= String(e.fim).slice(0, 10);
+      if (e.tipo !== 'ferias' && e.tipo !== 'licenca_medica') return false;
+      if (e.situacao === 'solicitada' || e.situacao === 'rejeitada') return false; // ainda não vale na escala
+      return e.pessoa === nome && String(e.inicio).slice(0, 10) <= dia && dia <= String(e.fim).slice(0, 10);
     })[0] || null;
   }
   // Nomes na escala do dia, já trocando quem está de férias/licença pela

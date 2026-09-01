@@ -357,6 +357,7 @@ table.cal td.folga { background: repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7
 .mk.fer { background: #2e7d32; } .mk.fer.impacto { background: #f9ab00; color: #3a2f00; } .mk.fer.bloqueado { background: var(--danger); }
 .mk.lic { background: #ef6c00; } .mk.sob { background: #1565c0; } .mk.conv { background: var(--danger); } .mk.perm { background: #6a1b9a; }
 .mk.cob { background: var(--accent-dk); color: #fff; }
+.mk.pend { opacity: .5; background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.12), rgba(0,0,0,.12) 2px, transparent 2px, transparent 4px); }
 /* dia de folga durante férias/licença: só um tom suave, sem barra */
 table.cal td.c.aus::after {
   content: ''; position: absolute; left: 3px; right: 3px; bottom: 2px; height: 2px;

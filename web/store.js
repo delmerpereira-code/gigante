@@ -324,9 +324,13 @@
     return d || 30;
   }
 
+  // solicitação ainda não decidida não consome saldo; rejeitada também não
+  function feriasContaSaldo(e) {
+    return e.tipo === 'ferias' && e.situacao !== 'solicitada' && e.situacao !== 'rejeitada';
+  }
   function feriasDoAno(nome, ano, excluirId) {
     return _db.Eventos.filter(function (e) {
-      return e.tipo === 'ferias' && e.pessoa === nome && e.id !== excluirId &&
+      return feriasContaSaldo(e) && e.pessoa === nome && e.id !== excluirId &&
         parseDia(e.inicio).getFullYear() === Number(ano);
     });
   }
@@ -569,7 +573,8 @@
   }
 
   // ─── Eventos ──────────────────────────────────────────────────────────────
-  var CAMPOS_EVT = ['id', 'tipo', 'pessoa', 'substituto', 'inicio', 'fim', 'irregular', 'nivel', 'obs'];
+  var CAMPOS_EVT = ['id', 'tipo', 'pessoa', 'substituto', 'inicio', 'fim', 'irregular', 'nivel', 'obs',
+                    'situacao', 'justificativa', 'decidido_por'];
   var TIPOS_EVT = ['ferias', 'licenca_medica', 'folga_abatendo_banco', 'troca',
                    'convocacao', 'sobreaviso_escalado', 'sobreaviso_acionado'];
 
@@ -588,12 +593,20 @@
     if (!reg.inicio) throw new Error('Informe o início.');
     if (!reg.fim) reg.fim = reg.inicio;
 
+    var antigo = dados.id ? _db.Eventos[idxEvt(dados.id)] : null;
     reg.id = dados.id || uid();
 
     var avaliacao = null;
-    if (reg.tipo === 'ferias' || reg.tipo === 'licenca_medica') {
-      // Férias/licença é COMUNICAÇÃO, não aprovação: nunca barra. O nível
-      // (livre / impacto / crítico) fica registrado só como alerta ao gestor.
+    if (reg.tipo === 'ferias') {
+      // Fluxo: servidor SOLICITA → líder aprova/rejeita/modifica.
+      // Gestor lançando direto já entra aprovada. Nunca barra por nível.
+      if (antigo && antigo.situacao) reg.situacao = antigo.situacao;
+      else reg.situacao = podeGerirFerias() ? 'aprovada' : 'solicitada';
+      if (reg.situacao === 'aprovada' && podeGerirFerias()) reg.decidido_por = reg.decidido_por || papelAtual().nome;
+      avaliacao = avaliarFerias(reg.pessoa, reg.inicio, reg.fim, reg.id, false, reg.tipo, reg.substituto);
+      reg.nivel = avaliacao.nivel;
+    } else if (reg.tipo === 'licenca_medica') {
+      reg.situacao = 'aprovada';
       avaliacao = avaliarFerias(reg.pessoa, reg.inicio, reg.fim, reg.id, false, reg.tipo, reg.substituto);
       reg.nivel = avaliacao.nivel;
     }
@@ -631,6 +644,46 @@
     removerLancamentosDoEvento(id);
     salvar();
     return true;
+  }
+
+  // ─── Decisão do líder sobre uma solicitação de férias ─────────────────────
+  //  decisao: 'aprovar' | 'rejeitar' | 'modificar'
+  //  extra: { justificativa, inicio, fim } — justificativa exigida em rejeitar/modificar
+  function decidirFerias(id, decisao, extra) {
+    if (!podeGerirFerias()) throw new Error('Só o líder decide férias.');
+    var i = idxEvt(id);
+    if (i < 0) throw new Error('Solicitação não encontrada.');
+    var e = _db.Eventos[i];
+    if (e.tipo !== 'ferias') throw new Error('Só solicitações de férias.');
+    extra = extra || {};
+    var just = String(extra.justificativa || '').trim();
+
+    if (decisao === 'aprovar') {
+      e.situacao = 'aprovada';
+      if (just) e.justificativa = just;
+    } else if (decisao === 'rejeitar') {
+      if (!just) throw new Error('Rejeitar exige justificativa.');
+      e.situacao = 'rejeitada';
+      e.justificativa = just;
+    } else if (decisao === 'modificar') {
+      if (!just) throw new Error('Modificar exige justificativa.');
+      if (!extra.inicio) throw new Error('Informe as novas datas.');
+      e.inicio = extra.inicio;
+      e.fim = extra.fim || extra.inicio;
+      e.situacao = 'aprovada';
+      e.justificativa = just;
+      var av = avaliarFerias(e.pessoa, e.inicio, e.fim, e.id, false, 'ferias', e.substituto);
+      e.nivel = av.nivel;
+    } else {
+      throw new Error('Decisão inválida: ' + decisao);
+    }
+    e.decidido_por = papelAtual().nome;
+    salvar();
+    return clone(e);
+  }
+  function feriasPendentes() {
+    return clone(_db.Eventos).filter(function (e) { return e.tipo === 'ferias' && e.situacao === 'solicitada'; })
+      .sort(function (a, b) { return String(a.inicio).localeCompare(String(b.inicio)); });
   }
   function idxEvt(id) {
     for (var i = 0; i < _db.Eventos.length; i++) if (_db.Eventos[i].id === id) return i;
@@ -1038,6 +1091,7 @@
     diasFeriasDe: diasFeriasDe, feriasConsumidas: feriasConsumidas, saldoFerias: saldoFerias,
     avaliarFerias: avaliarFerias, proximaJanelaLivre: proximaJanelaLivre, avaliarCoberturas: avaliarCoberturas,
     eventos: eventos, eventosVisiveis: eventosVisiveis, salvarEvento: salvarEvento, removerEvento: removerEvento,
+    decidirFerias: decidirFerias, feriasPendentes: feriasPendentes,
     bancoHoras: bancoHoras, bancoHorasVisivel: bancoHorasVisivel, ajusteManual: ajusteManual,
     removerLancamento: removerLancamento, saldos: saldos, saldoDe: saldoDe,
     ESTADOS_PERMUTA: ESTADOS_PERMUTA, prazoPermutaH: prazoPermutaH,

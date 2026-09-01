@@ -73,14 +73,16 @@
     return {
       id: r.id, tipo: r.tipo, pessoa: nomeDe(r.funcionario_id), substituto: nomeDe(r.substituto_id),
       inicio: r.inicio, fim: r.fim, irregular: r.irregular ? 'sim' : 'nao',
-      nivel: r.nivel || '', obs: r.obs || ''
+      nivel: r.nivel || '', obs: r.obs || '',
+      situacao: r.situacao || '', justificativa: r.justificativa || '', decidido_por: r.decidido_por || ''
     };
   }
   function evtDB(e) {
     return {
       id: e.id, tipo: e.tipo, funcionario_id: idDe(e.pessoa),
       substituto_id: idDe(e.substituto), inicio: e.inicio, fim: e.fim,
-      irregular: e.irregular === 'sim', nivel: e.nivel || null, obs: e.obs || ''
+      irregular: e.irregular === 'sim', nivel: e.nivel || null, obs: e.obs || '',
+      situacao: e.situacao || null, justificativa: e.justificativa || '', decidido_por: e.decidido_por || ''
     };
   }
 
@@ -218,7 +220,7 @@
   }
 
   // ─── envolve as escritas do Store ────────────────────────────────────────
-  ['salvarFuncionario', 'removerFuncionario', 'salvarEvento', 'removerEvento',
+  ['salvarFuncionario', 'removerFuncionario', 'salvarEvento', 'removerEvento', 'decidirFerias',
    'ajusteManual', 'removerLancamento', 'setConfig', 'seedElencoExemplo',
    'limparTudo', 'importar'].forEach(function (m) {
     var orig = Store[m];
