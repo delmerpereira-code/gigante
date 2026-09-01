@@ -344,6 +344,7 @@
     }).length;
 
     var msgs = [];
+    var quebrasCarga = [];
     var pior = 'livre';
     function rebaixa(n) {
       var ordem = { livre: 0, impacto: 1, bloqueado: 2 };
@@ -368,6 +369,18 @@
       } else {
         msgs.push('Cobertura definida: ' + subNome + '.');
       }
+      // Quebra de carga horária: a coringa se apresenta num plantão antes de
+      // terminar o descanso/folga protegido de outra cobertura.
+      var evTmp = { id: '__tmp__', tipo: tipo || 'ferias', pessoa: nome, substituto: subNome, inicio: inicio, fim: fim };
+      avaliarCoberturas(subNome, evTmp, excluirId).forEach(function (q) {
+        if (q.eventoDestino !== '__tmp__' && q.eventoAnterior !== '__tmp__') return;
+        rebaixa('bloqueado');
+        quebrasCarga.push(q);
+        msgs.push('QUEBRA DE CARGA HORÁRIA: ' + subNome + ' encerra a cobertura em ' + q.plantaoAnterior +
+          ' (proteção até ' + new Date(q.protegidoAte).toLocaleString('pt-BR') + ') mas se apresenta em ' +
+          q.plantaoDestino + ' em ' + new Date(q.apresentacao).toLocaleString('pt-BR') + ' — ' + q.horasPerdidas +
+          'h de descanso a menos. Se o líder assumir, entram ' + q.creditoFolga + 'h no banco de ' + subNome + '.');
+      });
     }
     var coberturaOk = subNome && !subOcupado;
 
@@ -445,11 +458,76 @@
     var out = {
       nivel: pior,
       mensagens: msgs,
+      quebraCarga: quebrasCarga,
       saldo: { base: base, consumido: consumido, novos: novos, restante: base - consumido - novos },
       diasSobreaviso: diasSobreaviso
     };
     if (pior !== 'livre' && !semJanela) out.proximaJanela = proximaJanelaLivre(nome, inicio, fim, excluirId, tipo);
     return out;
+  }
+
+  // Turnos que uma coringa efetivamente cumpre ao cobrir um plantão em [ini,fim]
+  // e até quando vai a proteção (descanso/folga) logo após o último turno.
+  function _stintCobertura(plantao, ini, fim, cfg) {
+    var d0 = String(ini).slice(0, 10), d1 = String(fim).slice(0, 10);
+    var turnos = R.proximosTurnos(plantao, ini, 200, cfg).filter(function (t) {
+      return t.data >= d0 && t.data <= d1;
+    });
+    if (!turnos.length) return null;
+    var ult = turnos[turnos.length - 1];
+    var est = R.estadoEm(plantao, new Date(ult.fim.getTime() + 60000), cfg);
+    return {
+      plantao: plantao,
+      apresentacao: turnos[0].inicio,
+      ultimoFim: ult.fim,
+      protegidoAte: est && est.fimProtecao ? est.fimProtecao : ult.fim,
+      horasTurnos: turnos.reduce(function (s, t) { return s + t.horas; }, 0)
+    };
+  }
+
+  /**
+   * Detecta quebra de descanso/folga de uma coringa que cobre plantões
+   * diferentes em sequência. Retorna lista de quebras:
+   *   { coringa, plantaoAnterior, plantaoDestino, eventoAnterior, eventoDestino,
+   *     apresentacao, protegidoAte, horasPerdidas, creditoFolga }
+   */
+  function avaliarCoberturas(coringa, eventoExtra, excluirId) {
+    var cfg = rotacaoConfig();
+    var evs = _db.Eventos.filter(function (e) {
+      return (e.tipo === 'ferias' || e.tipo === 'licenca_medica') &&
+        e.substituto === coringa && e.id !== excluirId && (!eventoExtra || e.id !== eventoExtra.id);
+    });
+    if (eventoExtra && eventoExtra.substituto === coringa) evs = evs.concat([eventoExtra]);
+
+    var stints = [];
+    evs.forEach(function (e) {
+      var alvo = funcionarioPorNome(e.pessoa);
+      var pl = alvo && alvo.plantao;
+      if (!pl) return;
+      var s = _stintCobertura(pl, e.inicio, e.fim, cfg);
+      if (s) { s.eventoId = e.id; stints.push(s); }
+    });
+    stints.sort(function (a, b) { return a.apresentacao - b.apresentacao; });
+
+    var quebras = [];
+    for (var i = 1; i < stints.length; i++) {
+      var ant = stints[i - 1], cur = stints[i];
+      if (ant.plantao === cur.plantao) continue;               // mesma cobertura contínua
+      if (cur.apresentacao >= ant.protegidoAte) continue;      // descansou o previsto
+      var horasPerdidas = (ant.protegidoAte - cur.apresentacao) / 3600000;
+      quebras.push({
+        coringa: coringa,
+        plantaoAnterior: ant.plantao,
+        plantaoDestino: cur.plantao,
+        eventoAnterior: ant.eventoId,
+        eventoDestino: cur.eventoId,
+        apresentacao: cur.apresentacao,
+        protegidoAte: ant.protegidoAte,
+        horasPerdidas: r2(horasPerdidas),
+        creditoFolga: r2(horasPerdidas * (Number(cfg.multFolgaPerdida) || 1))
+      });
+    }
+    return quebras;
   }
 
   function eventosCobrindo(dia, tipos, excluirId) {
@@ -504,10 +582,26 @@
     var impacto = aplicarImpacto(reg);
     reg.irregular = impacto && impacto.irregular ? 'sim' : 'nao';
 
+    // Quebra de carga horária da coringa: só lança no banco se o líder assumir.
+    var quebras = (avaliacao && avaliacao.quebraCarga) || [];
+    if (quebras.length && dados.assumirQuebra) {
+      quebras.forEach(function (q) {
+        if (q.creditoFolga > 0) {
+          lancar(q.coringa, 'entrada', q.creditoFolga, 'folga_perdida', reg.id,
+            typeof q.apresentacao === 'string' ? q.apresentacao : new Date(q.apresentacao).toISOString());
+        }
+      });
+      reg.irregular = 'sim';
+    }
+
     var i = idxEvt(reg.id);
     if (i >= 0) _db.Eventos[i] = reg; else _db.Eventos.push(reg);
     salvar();
-    return { id: reg.id, irregular: reg.irregular === 'sim', nivel: reg.nivel || '', impacto: impacto, avaliacao: avaliacao };
+    return {
+      id: reg.id, irregular: reg.irregular === 'sim', nivel: reg.nivel || '',
+      impacto: impacto, avaliacao: avaliacao,
+      quebraCarga: quebras, quebraAssumida: !!(quebras.length && dados.assumirQuebra)
+    };
   }
 
   function removerEvento(id) {
@@ -916,7 +1010,7 @@
     salvarFuncionario: salvarFuncionario, removerFuncionario: removerFuncionario,
     plantoes: plantoes, coringas: coringas, parceiroDeDupla: parceiroDeDupla,
     diasFeriasDe: diasFeriasDe, feriasConsumidas: feriasConsumidas, saldoFerias: saldoFerias,
-    avaliarFerias: avaliarFerias, proximaJanelaLivre: proximaJanelaLivre,
+    avaliarFerias: avaliarFerias, proximaJanelaLivre: proximaJanelaLivre, avaliarCoberturas: avaliarCoberturas,
     eventos: eventos, eventosVisiveis: eventosVisiveis, salvarEvento: salvarEvento, removerEvento: removerEvento,
     bancoHoras: bancoHoras, bancoHorasVisivel: bancoHorasVisivel, ajusteManual: ajusteManual,
     removerLancamento: removerLancamento, saldos: saldos, saldoDe: saldoDe,

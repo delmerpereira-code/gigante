@@ -94,6 +94,36 @@ Store.setVerComo('Lider');
 checa('volta a líder: vê banco de todos',
   Store.bancoHorasVisivel().some(function (l) { return l.pessoa === 'Tainá'; }));
 
+// ── quebra de carga horária da coringa (Tainá cobre PL V e depois PL III) ──
+Store.limparTudo();
+Store.seedElencoExemplo();
+Store.setConfig('ancora_rotacao', '2026-09-01');
+// Célia (PL V) de férias até voltar 07/09 → coringa Tainá cobre
+var evV = Store.salvarEvento({ tipo: 'ferias', pessoa: 'Célia', substituto: 'Tainá',
+  inicio: '2026-09-01', fim: '2026-09-06' });
+// Melanye (PL III) de licença a partir de 05/09 → Tainá também
+var avIII = Store.avaliarFerias('Melanye', '2026-09-05', '2026-09-12', undefined, false, 'licenca_medica', 'Tainá');
+checa('detecta quebra de carga horária da coringa', avIII.quebraCarga && avIII.quebraCarga.length === 1,
+  JSON.stringify(avIII.quebraCarga));
+checa('quebra: 48h de descanso perdidas', avIII.quebraCarga[0].horasPerdidas === 48,
+  avIII.quebraCarga && avIII.quebraCarga[0].horasPerdidas);
+checa('quebra vira nível crítico', avIII.nivel === 'bloqueado', avIII.nivel);
+
+// líder NÃO assume → nada no banco
+var semAssumir = Store.salvarEvento({ tipo: 'licenca_medica', pessoa: 'Melanye', substituto: 'Tainá',
+  inicio: '2026-09-05', fim: '2026-09-12' });
+checa('sem assumir: nada lançado no banco da Tainá',
+  Store.bancoHoras().filter(function (l) { return l.pessoa === 'Tainá'; }).length === 0);
+Store.removerEvento(semAssumir.id);
+
+// líder assume → 48h de folga_perdida no banco da Tainá
+var comAssumir = Store.salvarEvento({ tipo: 'licenca_medica', pessoa: 'Melanye', substituto: 'Tainá',
+  inicio: '2026-09-05', fim: '2026-09-12', assumirQuebra: true });
+checa('assumindo: retorno marca quebraAssumida', comAssumir.quebraAssumida === true);
+var lanc = Store.bancoHoras().filter(function (l) { return l.pessoa === 'Tainá' && l.motivo === 'folga_perdida'; });
+checa('assumindo: 48h de folga_perdida no banco da Tainá', lanc.length === 1 && lanc[0].horas === 48,
+  JSON.stringify(lanc));
+
 console.log('\n' + ok + ' ok, ' + falhas + ' falha(s).');
 Store.limparTudo();
 Store.setVerComo('Lider');

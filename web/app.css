@@ -319,6 +319,11 @@ a { color: var(--accent); }
 .sem.ama   { background: var(--warning-bg); border-color: #f0c25a; }
 .sem.verm  { background: var(--danger-bg); border-color: var(--danger); }
 .sem .janela { margin-top: 8px; }
+.quebra-assume {
+  display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; padding: 8px 10px;
+  background: #fff; border: 1px solid var(--danger); border-radius: 8px; font-size: 12px; cursor: pointer;
+}
+.quebra-assume input { margin-top: 2px; }
 .barra { display: inline-block; width: 84px; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; vertical-align: middle; }
 .barra i { display: block; height: 100%; background: var(--accent); }
 

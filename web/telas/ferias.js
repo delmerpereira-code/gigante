@@ -78,6 +78,12 @@
         ' → <b>' + s.restante + ' restantes</b></div>';
       if (av.proximaJanela) h += '<div class="janela">Próxima 🟢: <b>' + fmtBR(av.proximaJanela.inicio) + ' a ' + fmtBR(av.proximaJanela.fim) +
         '</b> <button class="btn pequeno sec" id="f-usar">usar</button></div>';
+      if (av.quebraCarga && av.quebraCarga.length && souLider()) {
+        var tot = av.quebraCarga.reduce(function (acc, q) { return acc + q.creditoFolga; }, 0);
+        h += '<label class="quebra-assume"><input type="checkbox" id="f-assumir"> ' +
+          '<b>Líder assume a quebra de descanso</b> e lança <b>' + tot + ' h</b> no banco de horas de ' +
+          A.esc(av.quebraCarga[0].coringa) + '.</label>';
+      }
       box.className = 'sem ' + cor; box.innerHTML = h; box.hidden = false;
       var u = box.querySelector('#f-usar');
       if (u) u.addEventListener('click', function () { $('#f-ini').value = av.proximaJanela.inicio; $('#f-fim').value = av.proximaJanela.fim; semaforo(); });
@@ -106,14 +112,20 @@
     function salvar() {
       $('#f-erro').textContent = '';
       try {
+        var assume = card.querySelector('#f-assumir');
+        var temQuebra = ultima && ultima.quebraCarga && ultima.quebraCarga.length;
         var r = S.salvarEvento({
           id: editId || undefined, tipo: $('#f-tipo').value, pessoa: $('#f-pessoa').value,
-          substituto: $('#f-sub').value,
+          substituto: $('#f-sub').value, assumirQuebra: !!(assume && assume.checked),
           inicio: $('#f-ini').value, fim: $('#f-fim').value || $('#f-ini').value, obs: $('#f-obs').value
         });
         Promise.resolve(r).then(function () {
           limpar(); render();
-          A.toast('Comunicado registrado' + (r && r.nivel === 'impacto' ? ' (com impacto)' : ''), 'sucesso');
+          var msg = 'Comunicado registrado';
+          if (r && r.quebraAssumida) msg += ' · quebra lançada no banco';
+          else if (temQuebra) msg += ' · quebra de descanso NÃO lançada (líder não assumiu)';
+          else if (r && r.nivel === 'impacto') msg += ' (com impacto)';
+          A.toast(msg, r && temQuebra && !r.quebraAssumida ? 'erro' : 'sucesso');
         }).catch(function (e) { $('#f-erro').textContent = e.message || String(e); });
       } catch (e) { $('#f-erro').textContent = e.message; }
     }
