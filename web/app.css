@@ -367,6 +367,9 @@ table.cal td.folga { background: repeating-linear-gradient(45deg,#f4f5f7,#f4f5f7
 .dia-tur { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 3px 0; flex-wrap: wrap; }
 .dia-rot { font-family: var(--mono); font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; min-width: 62px; }
 .dia-nm { color: var(--text2); font-size: 12px; }
+.cobre { color: var(--accent-dk); font-weight: 700; }
+.ausente { text-decoration: line-through; opacity: .6; }
+.cobre-de { color: var(--text2); font-size: 11px; opacity: .85; }
 
 .pl-pill {
   display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 700;

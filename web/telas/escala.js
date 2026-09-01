@@ -20,6 +20,30 @@
     var d = S.plantoes().filter(function (x) { return x.codigo === pl; })[0] || {};
     return [d.pessoa_1, d.pessoa_2].filter(Boolean).join(' + ') || '—';
   }
+  function ausenciaDe(nome, d) {
+    var dia = iso(d);
+    return S.eventos().filter(function (e) {
+      return (e.tipo === 'ferias' || e.tipo === 'licenca_medica') && e.pessoa === nome &&
+        String(e.inicio).slice(0, 10) <= dia && dia <= String(e.fim).slice(0, 10);
+    })[0] || null;
+  }
+  // Nomes na escala do dia, já trocando quem está de férias/licença pela
+  // coringa que cobre (campo "substituto" do evento). Retorna HTML.
+  function nomesNoDia(pl, d) {
+    var dd = S.plantoes().filter(function (x) { return x.codigo === pl; })[0] || {};
+    var base = [dd.pessoa_1, dd.pessoa_2].filter(Boolean);
+    if (!base.length) return '—';
+    return base.map(function (nome) {
+      var a = ausenciaDe(nome, d);
+      if (!a) return A.esc(nome);
+      var mot = a.tipo === 'ferias' ? 'férias' : 'licença';
+      if (a.substituto) {
+        return '<span class="cobre">' + A.esc(a.substituto) + '</span>' +
+          '<span class="cobre-de"> (cobre ' + A.esc(nome) + ' · ' + mot + ')</span>';
+      }
+      return '<span class="ausente">' + A.esc(nome) + '</span><span class="cobre-de"> (' + mot + ' · sem cobertura)</span>';
+    }).join(' + ');
+  }
   function ehHoje(d) { return d.toDateString() === hoje.toDateString(); }
   function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function pill(pl) {
@@ -68,8 +92,8 @@
         card.innerHTML =
           '<div class="dia-cab">' + ('0' + d.getDate()).slice(-2) + ' · ' + DIAS[d.getDay()] +
             (ehHoje(d) ? ' <span class="tag v">hoje</span>' : '') + '</div>' +
-          '<div class="dia-tur"><span class="dia-rot">Diurno</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + A.esc(nomes(t.turno1)) + '</span></div>' +
-          '<div class="dia-tur"><span class="dia-rot">Noturno</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + A.esc(nomes(t.turno2)) + '</span></div>';
+          '<div class="dia-tur"><span class="dia-rot">Diurno</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + nomesNoDia(t.turno1, d) + '</span></div>' +
+          '<div class="dia-tur"><span class="dia-rot">Noturno</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + nomesNoDia(t.turno2, d) + '</span></div>';
         card.addEventListener('click', function () {
           var p = this.getAttribute('data-iso').split('-');
           estadoModal(new Date(+p[0], +p[1] - 1, +p[2]));
@@ -102,15 +126,16 @@
       '<div class="modal-acoes"><button class="btn sec" id="es-x">Fechar</button></div>');
     function calc() {
       var val = m.querySelector('#es-data').value; if (!val) return;
-      var t = R.turnosDoDia(new Date(val + 'T12:00'), cfg());
+      var dObj = new Date(val + 'T12:00');
+      var t = R.turnosDoDia(dObj, cfg());
       m.querySelector('#es-turnos').innerHTML =
-        '<div class="dia-tur"><span class="dia-rot">Diurno · 08–20</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + A.esc(nomes(t.turno1)) + '</span></div>' +
-        '<div class="dia-tur"><span class="dia-rot">Noturno · 20–08</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + A.esc(nomes(t.turno2)) + '</span></div>';
+        '<div class="dia-tur"><span class="dia-rot">Diurno · 08–20</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + nomesNoDia(t.turno1, dObj) + '</span></div>' +
+        '<div class="dia-tur"><span class="dia-rot">Noturno · 20–08</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + nomesNoDia(t.turno2, dObj) + '</span></div>';
       var inst = new Date(val + 'T08:30:00');
       m.querySelector('#es-res').innerHTML = cfg().ordem.map(function (pl) {
         var e = R.estadoEm(pl, inst, cfg());
         return '<div class="est-item ' + ROT[e.estado] + '"><span class="pl">' + pl + '</span>' +
-          '<div class="card-sub">' + e.rotulo + '</div><div class="card-sub">' + A.esc(nomes(pl)) + '</div>' +
+          '<div class="card-sub">' + e.rotulo + '</div><div class="card-sub">' + nomesNoDia(pl, dObj) + '</div>' +
           (e.protegido ? '<div class="card-sub">protegido até ' + e.fimProtecao.toLocaleString('pt-BR') + '</div>' : '') + '</div>';
       }).join('');
     }
