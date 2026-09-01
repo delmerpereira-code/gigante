@@ -23,6 +23,7 @@
         '<div class="campo"><label>Pessoa</label><select id="f-pessoa"></select></div>' +
         '<div class="campo"><label>Início</label><input type="date" id="f-ini"></div>' +
         '<div class="campo"><label>Fim</label><input type="date" id="f-fim"></div>' +
+        '<div class="campo wide"><label>Quem cobre (coringa que entra no plantão)</label><select id="f-sub"><option value="">— a definir —</option></select></div>' +
         '<div class="campo wide"><label>Observação</label><input type="text" id="f-obs"></div>' +
       '</div>' +
       '<div class="sem" id="f-sem" hidden></div>' +
@@ -49,15 +50,27 @@
         sel.innerHTML = '<option value="' + A.esc(p.nome) + '">' + A.esc(p.nome) + '</option>';
         sel.disabled = true;
       }
+      coberturas();
+    }
+    function coberturas() {
+      var sel = $('#f-sub'), atual = sel.value, quem = $('#f-pessoa').value;
+      // coringas primeiro (são elas que "flutuam" e entram no plantão), depois os demais
+      var cor = S.funcionarios().filter(function (f) { return f.regime === 'coringa' && f.status !== 'afastado' && f.nome_curto !== quem; });
+      var pla = S.funcionarios().filter(function (f) { return f.regime === 'plantao' && f.nome_curto !== quem; });
+      var opt = function (f, tag) { return '<option value="' + A.esc(f.nome_curto) + '">' + A.esc(f.nome_curto) + ' · ' + tag + '</option>'; };
+      sel.innerHTML = '<option value="">— a definir —</option>' +
+        cor.map(function (f) { return opt(f, 'coringa'); }).join('') +
+        pla.map(function (f) { return opt(f, f.plantao); }).join('');
+      if (atual && sel.querySelector('option[value="' + atual.replace(/"/g, '\\"') + '"]')) sel.value = atual;
     }
 
     function semaforo() {
       var box = $('#f-sem'), pessoa = $('#f-pessoa').value, ini = $('#f-ini').value, fim = $('#f-fim').value || ini;
       if (!pessoa || !ini) { box.hidden = true; ultima = null; botao(); return; }
-      var av = S.avaliarFerias(pessoa, ini, fim, editId || undefined, false, $('#f-tipo').value);
+      var av = S.avaliarFerias(pessoa, ini, fim, editId || undefined, false, $('#f-tipo').value, $('#f-sub').value);
       ultima = av;
       var cor = { livre: 'verde', impacto: 'ama', bloqueado: 'verm' }[av.nivel];
-      var tit = { livre: '🟢 Disponível', impacto: '🟡 Permitido com impacto', bloqueado: '🔴 Bloqueado' }[av.nivel];
+      var tit = { livre: '🟢 Sem impacto na escala', impacto: '🟡 Comunicado — atenção ao impacto', bloqueado: '🔴 Comunicado — cobertura crítica' }[av.nivel];
       var h = '<div class="cab">' + tit + ' · ' + dias(ini, fim) + ' dia(s)</div>';
       if (av.mensagens.length) h += '<ul>' + av.mensagens.map(function (m) { return '<li>' + A.esc(m) + '</li>'; }).join('') + '</ul>';
       var s = av.saldo;
@@ -71,12 +84,13 @@
       botao();
     }
     function botao() {
-      var bloq = ultima && ultima.nivel === 'bloqueado';
-      $('#f-salvar').disabled = !!bloq;
-      $('#f-salvar').textContent = bloq ? 'Bloqueado' : (editId ? 'Salvar' : 'Comunicar');
+      // Férias é comunicação, não aprovação: o botão nunca trava.
+      $('#f-salvar').disabled = false;
+      $('#f-salvar').textContent = editId ? 'Salvar' : 'Comunicar';
     }
     function limpar() {
       editId = ''; card.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+      $('#f-sub').value = '';
       $('#f-tit').textContent = 'Comunicar férias'; $('#f-cancelar').hidden = true; $('#f-erro').textContent = '';
       $('#f-sem').hidden = true; ultima = null; pessoas(); botao();
     }
@@ -84,6 +98,7 @@
       editId = e.id; $('#f-tipo').value = e.tipo;
       if (souLider()) $('#f-pessoa').value = e.pessoa;
       $('#f-ini').value = String(e.inicio).slice(0, 10); $('#f-fim').value = String(e.fim).slice(0, 10);
+      coberturas(); $('#f-sub').value = e.substituto || '';
       $('#f-obs').value = e.obs || '';
       $('#f-tit').textContent = 'Editando — ' + e.pessoa; $('#f-cancelar').hidden = false;
       semaforo(); corpo.scrollTop = 0;
@@ -93,6 +108,7 @@
       try {
         var r = S.salvarEvento({
           id: editId || undefined, tipo: $('#f-tipo').value, pessoa: $('#f-pessoa').value,
+          substituto: $('#f-sub').value,
           inicio: $('#f-ini').value, fim: $('#f-fim').value || $('#f-ini').value, obs: $('#f-obs').value
         });
         Promise.resolve(r).then(function () {
@@ -115,7 +131,7 @@
         }).join('') + '</table></div>';
 
       var evs = S.eventos().filter(function (e) { return e.tipo === 'ferias' || e.tipo === 'licenca_medica'; });
-      var NIV = { livre: '<span class="tag v">livre</span>', impacto: '<span class="tag a">impacto</span>', bloqueado: '<span class="tag r">bloqueado</span>' };
+      var NIV = { livre: '<span class="tag v">sem impacto</span>', impacto: '<span class="tag a">com impacto</span>', bloqueado: '<span class="tag r">cobertura crítica</span>' };
       listaCard.innerHTML = '<h3>Períodos marcados (' + evs.length + ')</h3>';
       if (!evs.length) { listaCard.innerHTML += '<div class="muted small">Nenhum.</div>'; return; }
       evs.forEach(function (e) {
@@ -123,7 +139,8 @@
         var d = A.h('div', { class: 'card', style: 'margin-top:8px' });
         d.innerHTML = '<div class="card-top"><span class="card-titulo">' + A.esc(e.pessoa) + '</span>' + (NIV[e.nivel] || '') + '</div>' +
           '<div class="card-linha">' + (e.tipo === 'ferias' ? 'Férias' : 'Licença') + ' · ' + fmtBR(e.inicio) + ' a ' + fmtBR(e.fim) +
-          ' · ' + dias(String(e.inicio).slice(0, 10), String(e.fim).slice(0, 10)) + ' dia(s)</div>';
+          ' · ' + dias(String(e.inicio).slice(0, 10), String(e.fim).slice(0, 10)) + ' dia(s)</div>' +
+          (e.substituto ? '<div class="card-sub">Coberto por <b>' + A.esc(e.substituto) + '</b></div>' : '<div class="card-sub muted">Cobertura a definir</div>');
         if (podeMexer) {
           d.innerHTML += '<div class="card-acoes"><button data-ed>editar</button><button class="dng" data-rm>excluir</button></div>';
           d.querySelector('[data-ed]').addEventListener('click', function () { editar(e); });
@@ -136,7 +153,9 @@
       });
     }
 
-    ['#f-tipo', '#f-pessoa', '#f-ini', '#f-fim'].forEach(function (s) { $(s).addEventListener('change', function () { render(); semaforo(); }); });
+    ['#f-tipo', '#f-pessoa', '#f-ini', '#f-fim', '#f-sub'].forEach(function (s) {
+      $(s).addEventListener('change', function () { if (s === '#f-pessoa') coberturas(); render(); semaforo(); });
+    });
     $('#f-salvar').addEventListener('click', salvar);
     $('#f-cancelar').addEventListener('click', limpar);
     pessoas(); render(); botao();

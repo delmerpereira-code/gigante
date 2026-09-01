@@ -335,7 +335,7 @@
    *   'bloqueado'  — sem coringa disponível / sobreposição com parceiro de dupla /
    *                  coringa sem coringa de reserva / excede saldo de férias
    */
-  function avaliarFerias(nome, inicio, fim, excluirId, semJanela, tipo) {
+  function avaliarFerias(nome, inicio, fim, excluirId, semJanela, tipo, substituto) {
     var f = funcionarioPorNome(nome);
     var ehTitular = ehPlantao(f);
     var ehCoringaP = ehCoringa(f);
@@ -349,6 +349,27 @@
       var ordem = { livre: 0, impacto: 1, bloqueado: 2 };
       if (ordem[n] > ordem[pior]) pior = n;
     }
+
+    // Cobertura nomeada: alguém foi designado para cobrir esta ausência
+    // (normalmente uma coringa "entrando" no plantão). Se essa pessoa estiver
+    // livre no período, a lacuna de cobertura é considerada resolvida.
+    var subNome = substituto || '';
+    var subOcupado = false;
+    if (subNome) {
+      subOcupado = _db.Eventos.some(function (e) {
+        if (e.id === excluirId) return false;
+        if (e.tipo !== 'ferias' && e.tipo !== 'licenca_medica') return false;
+        if (!sobrepoe(e.inicio, e.fim, inicio, fim)) return false;
+        return e.pessoa === subNome || e.substituto === subNome;
+      });
+      if (subOcupado) {
+        rebaixa('impacto');
+        msgs.push(subNome + ' já está de férias ou cobrindo outra ausência nesse período — confirmar com o gestor.');
+      } else {
+        msgs.push('Cobertura definida: ' + subNome + '.');
+      }
+    }
+    var coberturaOk = subNome && !subOcupado;
 
     // saldo de férias (só para tipo férias — licença não consome)
     var ano = parseDia(inicio).getFullYear();
@@ -390,19 +411,21 @@
       var coringasDisp = coringasAtivas - corForaTotal;
       var cobertura = outrosTit.length + (ehTitular ? 1 : 0);
 
-      if (coringasDisp < 0 || (ehCoringaP && coringasDisp <= 0)) {
-        rebaixa('bloqueado');
-      } else if (cobertura > coringasDisp) {
-        rebaixa('bloqueado');
-      } else if (cobertura === coringasDisp && cobertura > 0) {
-        rebaixa('impacto'); diasSobreaviso++;
+      if (!coberturaOk) {
+        if (coringasDisp < 0 || (ehCoringaP && coringasDisp <= 0)) {
+          rebaixa('bloqueado');
+        } else if (cobertura > coringasDisp) {
+          rebaixa('bloqueado');
+        } else if (cobertura === coringasDisp && cobertura > 0) {
+          rebaixa('impacto'); diasSobreaviso++;
+        }
       }
       if (cobertura >= 2) diasSegundaCobertura++;
       d = new Date(d.getTime() + MS_DIA);
     }
     if (pior === 'bloqueado' && !msgs.some(function (m) { return /coringa/i.test(m); }) &&
         !msgs.some(function (m) { return /Sobreposição|saldo/.test(m); })) {
-      msgs.push('Não há coringa disponível para cobrir todo o período.');
+      msgs.push('Sem coringa livre para cobrir todo o período — defina quem cobre ou ajuste as datas.');
     }
     if (diasSobreaviso > 0 && pior !== 'bloqueado') {
       msgs.push('Sobreaviso ficará descoberto em ' + diasSobreaviso + ' dia(s) do período.');
@@ -471,14 +494,10 @@
 
     var avaliacao = null;
     if (reg.tipo === 'ferias' || reg.tipo === 'licenca_medica') {
-      avaliacao = avaliarFerias(reg.pessoa, reg.inicio, reg.fim, reg.id, false, reg.tipo);
+      // Férias/licença é COMUNICAÇÃO, não aprovação: nunca barra. O nível
+      // (livre / impacto / crítico) fica registrado só como alerta ao gestor.
+      avaliacao = avaliarFerias(reg.pessoa, reg.inicio, reg.fim, reg.id, false, reg.tipo, reg.substituto);
       reg.nivel = avaliacao.nivel;
-      if (avaliacao.nivel === 'bloqueado' && !dados.forcar) {
-        var err = new Error(avaliacao.mensagens.join(' '));
-        err.avaliacao = avaliacao;
-        err.bloqueado = true;
-        throw err;
-      }
     }
 
     removerLancamentosDoEvento(reg.id);

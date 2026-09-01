@@ -67,11 +67,15 @@ checa('período > 30 dias = bloqueado por saldo', a8.nivel === 'bloqueado',
   a8.nivel + ' ' + JSON.stringify(a8.mensagens));
 checa('mensagem cita saldo', a8.mensagens.join(' ').toLowerCase().indexOf('saldo') >= 0);
 
-// ── salvarEvento barra período bloqueado ─────────────────────────────────
-var barrou = false;
-try { Store.salvarEvento({ tipo: 'ferias', pessoa: 'Elizete', inicio: '2026-11-09', fim: '2026-11-11' }); }
-catch (e) { barrou = e.bloqueado === true; }
-checa('salvarEvento recusa férias bloqueada', barrou);
+// ── salvarEvento NÃO barra (férias é comunicação): registra o nível ──────
+var rb = Store.salvarEvento({ tipo: 'ferias', pessoa: 'Elizete', inicio: '2026-11-09', fim: '2026-11-11' });
+checa('salvarEvento aceita férias com cobertura crítica', rb && rb.nivel === 'bloqueado', rb && rb.nivel);
+Store.removerEvento(rb.id); // não contaminar os testes de saldo abaixo
+
+// ── cobertura nomeada resolve a lacuna ──────────────────────────────────
+var ac = Store.avaliarFerias('Elizete', '2026-11-09', '2026-11-11', undefined, false, 'ferias', 'Coringa 2');
+checa('cobertura nomeada (Coringa 2 livre) tira o crítico', ac.nivel !== 'bloqueado',
+  ac.nivel + ' ' + JSON.stringify(ac.mensagens));
 
 // ── consumo de saldo após salvar ────────────────────────────────────────
 // Patrício: 05–15/11 = 11 dias
