@@ -94,8 +94,10 @@
       renderAlertas(alertas, evs, total);
     }
 
+    function faseDia(pl, dia, C) { return pl ? R.fase(pl, new Date(ano, mes, dia), C) : -1; }
+
     function celula(p, dia, C, evs) {
-      var base = '', tit = [], cobrindo = '';
+      var base = '', tit = [], cobrindo = '', ausente = false;
       // plantão efetivo do dia: o próprio, ou o que está cobrindo como substituto
       var plEfetivo = p.regime === 'plantao' ? p.plantao : '';
       evs.forEach(function (e) {
@@ -105,23 +107,36 @@
           if (alvo && alvo.plantao) { plEfetivo = alvo.plantao; cobrindo = alvo.plantao; }
         }
       });
+      var fEf = faseDia(plEfetivo, dia, C);
+      var noTurno = fEf === 0 || fEf === 1;   // dia em que realmente há trabalho
       if (plEfetivo) {
-        var f = R.fase(plEfetivo, new Date(ano, mes, dia), C);
-        base = f === 0 ? 't1' : (f === 1 ? 't2' : 'folga');
+        if (cobrindo && cobrindo !== p.plantao) {
+          base = fEf === 0 ? 't1' : (fEf === 1 ? 't2' : '');   // coringa/expediente: só os turnos
+        } else {
+          base = fEf === 0 ? 't1' : (fEf === 1 ? 't2' : 'folga');
+        }
       }
+
       var mk = '';
-      if (cobrindo && cobrindo !== p.plantao) {
+      // cobertura: só aparece nos turnos que a coringa/expediente realmente cumpre
+      if (cobrindo && cobrindo !== p.plantao && noTurno) {
         mk += '<i class="mk cob">' + A.esc(cobrindo.replace('PL ', '')) + '</i>';
-        tit.push('cobrindo ' + cobrindo);
+        tit.push('cobre ' + cobrindo + (fEf === 0 ? ' · 1º turno' : ' · 2º turno'));
       }
       evs.forEach(function (e) {
         if (e.pessoa !== p.nome_curto || !MARCA[e.tipo] || !cobreDia(e.inicio, e.fim, dia)) return;
         var m = MARCA[e.tipo];
+        // férias/licença de plantonista: marca só nos dias de turno do plantão dele;
+        // nos dias de folga apenas registra (fica só o sombreado claro)
+        if ((e.tipo === 'ferias' || e.tipo === 'licenca_medica') && p.regime === 'plantao' && p.plantao) {
+          var fp = faseDia(p.plantao, dia, C);
+          if (fp !== 0 && fp !== 1) { ausente = true; tit.push(e.tipo + ' (folga)'); return; }
+        }
         var extra = (e.tipo === 'ferias' && e.nivel && e.nivel !== 'livre') ? ' ' + e.nivel : '';
         mk += '<i class="mk ' + m.c + extra + '">' + m.s + '</i>';
         tit.push(e.tipo + (e.obs ? ' ' + e.obs : ''));
       });
-      return '<td class="c ' + base + '" title="' + A.esc(tit.join(' | ')) + '">' + mk + '</td>';
+      return '<td class="c ' + base + (ausente ? ' aus' : '') + '" title="' + A.esc(tit.join(' | ')) + '">' + mk + '</td>';
     }
     draw();
   }
