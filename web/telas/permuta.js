@@ -34,11 +34,11 @@
     formCard.innerHTML =
       '<h3>Nova permuta</h3>' +
       '<div class="form">' +
-        '<div class="campo"><label>Quem passa o turno (A)</label><select id="p-a"></select></div>' +
-        '<div class="campo"><label>Contraparte (B)</label><select id="p-b"></select></div>' +
-        '<div class="campo wide"><label>Turno que <b id="p-la">A</b> passa</label><select id="p-ta"></select></div>' +
+        '<div class="campo"><label>NOME DO SUBSTITUÍDO</label><select id="p-a"></select></div>' +
+        '<div class="campo"><label>NOME DO SUBSTITUTO</label><select id="p-b"></select></div>' +
+        '<div class="campo wide"><label>Turno que <b id="p-la">A</b> passará</label><select id="p-ta"></select></div>' +
         '<div class="campo wide"><label style="text-transform:none;letter-spacing:0"><input type="checkbox" id="p-dupla"> Troca de dia (cada um cobre o do outro — sem dívida)</label></div>' +
-        '<div class="campo wide" id="p-wtb" hidden><label>Turno que <b id="p-lb">B</b> passa</label><select id="p-tb"></select></div>' +
+        '<div class="campo wide" id="p-wtb" hidden><label>Turno que <b id="p-lb">B</b> passará</label><select id="p-tb"></select></div>' +
         '<div class="campo wide"><label>Observação</label><input type="text" id="p-obs"></div>' +
       '</div>' +
       '<div class="card-acoes"><button class="pri" id="p-propor">Propor permuta</button><span class="erro" id="p-erro"></span></div>' +
