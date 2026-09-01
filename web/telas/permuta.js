@@ -145,10 +145,15 @@
       lst.forEach(function (p) {
         var e = EST[p.estado] || [p.estado, 'n'];
         var d = A.h('div', { class: 'card', style: 'margin-top:8px' });
+        var falta = p.estado === 'proposta' ? 'Falta o líder aprovar.'
+          : p.estado === 'aprovada' ? 'Falta ' + p.pessoa_b + ' confirmar o acordo.'
+          : p.estado === 'confirmada' ? 'Acordo fechado — o líder pode concluir. Conta já lançada.'
+          : '';
         d.innerHTML = '<div class="card-top"><span class="card-titulo">' + p.numero + '</span><span class="tag ' + e[1] + '">' + e[0] + '</span></div>' +
           '<div class="card-linha">' + A.esc(p.pessoa_a) + ' → ' + A.esc(p.pessoa_b) + '</div>' +
           '<div class="card-sub">' + A.esc(resumoTurno(p)) + '</div>' +
           (p.obs ? '<div class="card-sub">“' + A.esc(p.obs) + '”</div>' : '') +
+          (falta ? '<div class="card-sub" style="color:var(--accent-dk);font-weight:600">➜ ' + A.esc(falta) + '</div>' : '') +
           '<div class="card-acoes"></div>';
         var bar = d.querySelector('.card-acoes');
         acoes(p).forEach(function (ac) {

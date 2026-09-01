@@ -1,5 +1,5 @@
 /* Service worker — Controle de Plantão (PWA) */
-const CACHE = 'plantao-v24';
+const CACHE = 'plantao-v25';
 const ASSETS = [
   './', './index.html', './app.css', './app.js', './manifest.json', './icon.svg',
   './termos/permuta-modelo.docx',
