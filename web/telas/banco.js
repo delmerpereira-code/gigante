@@ -8,7 +8,7 @@
   function fmt(iso) { var d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); }
   function pessoasVis() {
     var me = eu();
-    var l = S.funcionarios().filter(function (f) { return f.regime === 'plantao' || f.regime === 'coringa'; });
+    var l = S.equipe().filter(function (f) { return f.regime === 'plantao' || f.regime === 'coringa'; });
     if (me.tipo === 'funcionario') l = l.filter(function (f) { return f.nome_curto === me.nome; });
     return l.map(function (f) { return f.nome_curto; }).sort();
   }

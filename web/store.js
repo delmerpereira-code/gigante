@@ -145,13 +145,20 @@
   function setVerComo(v) { gravarBruto(VC_KEY, v || 'Lider'); }
   function papelAtual() {
     var v = verComo();
-    if (v === 'Lider' || v === 'Gerente') return { tipo: 'lider', nome: 'Líder' };
+    if (v === 'Lider' || v === 'Gerente') return { tipo: 'lider', nome: 'Líder', lider: true, admin: true };
     var f = funcionarioPorNome(v) || funcionarioPorMatricula(v);
-    if (f && f.lider === 'sim') return { tipo: 'lider', nome: f.nome_curto };
-    return { tipo: f ? 'funcionario' : 'lider', nome: f ? f.nome_curto : v };
+    var ehL = !!(f && f.lider === 'sim');
+    var ehA = !!(f && f.cargo === 'administrador');
+    if (ehL || ehA) return { tipo: 'lider', nome: f.nome_curto, lider: ehL, admin: ehA };
+    return { tipo: f ? 'funcionario' : 'lider', nome: f ? f.nome_curto : v, lider: false, admin: false };
   }
+  // acesso de gestão (vê tudo, gerencia): líder OU administrador de sistema
   function ehLider() { return papelAtual().tipo === 'lider'; }
   var ehGerente = ehLider; // alias de compatibilidade
+  // administrador de sistema (cadastro, config, logins, backup) — NÃO decide férias
+  function ehAdmin() { return papelAtual().admin === true; }
+  // quem decide férias/licença e ajusta cobertura: só o líder operacional (Cassia)
+  function podeGerirFerias() { return papelAtual().lider === true; }
   /** Filtra uma lista: líder vê tudo, funcionário só o que é dele. */
   function visivelPara(lista, campoPessoa) {
     var p = papelAtual();
@@ -165,7 +172,7 @@
   // ─── Funcionários ─────────────────────────────────────────────────────────
   //  Chave interna: id. Identificador visível: matricula. Exibição: nome_curto.
   var CAMPOS_FUNC = ['id', 'matricula', 'nome_completo', 'nome_curto', 'foto', 'email',
-    'celular', 'celular2', 'nascimento', 'cargo', 'regime', 'plantao', 'lider',
+    'celular', 'celular2', 'nascimento', 'cargo', 'regime', 'plantao', 'lider', 'oculto',
     'admissao', 'status', 'saldo_inicial_banco', 'dias_ferias_ano', 'auth_user_id'];
   var CARGOS = ['investigador', 'delegado', 'diretor', 'administrador'];
   // campos que o próprio funcionário pode editar (o resto é só do líder)
@@ -201,6 +208,8 @@
   }
 
   function funcionarios() { return clone(_db.Funcionarios); }
+  // a equipe "de verdade" — sem usuários de sistema (oculto = prestador/dono)
+  function equipe() { return clone(_db.Funcionarios).filter(function (f) { return f.oculto !== 'sim'; }); }
   function funcionarioPorNome(nome) {
     return _db.Funcionarios.filter(function (f) { return f.nome_curto === nome; })[0] || null;
   }
@@ -229,6 +238,7 @@
     reg.regime = reg.regime || 'plantao';
     reg.cargo = CARGOS.indexOf(reg.cargo) >= 0 ? reg.cargo : 'investigador';
     reg.lider = reg.lider === 'sim' ? 'sim' : 'nao';
+    reg.oculto = reg.oculto === 'sim' ? 'sim' : 'nao';
     reg.status = reg.status || 'ativo';
     reg.saldo_inicial_banco = Number(reg.saldo_inicial_banco) || 0;
     reg.dias_ferias_ano = Number(reg.dias_ferias_ano) > 0
@@ -723,8 +733,10 @@
   }
 
   // ─── Permuta (acordo entre funcionários; NÃO passa pelo banco de horas) ────
-  //  Estados: proposta → aprovada (Líder) → confirmada (B) → concluida.
-  //           rejeitada (Líder) / recusada (B) / cancelada (A ou Líder) / expirada.
+  //  Estados: proposta → confirmada (B aceita) → concluida.
+  //           recusada (B) / cancelada (A) / expirada.
+  //  O líder NÃO aprova — só é comunicado. O termo é impresso e o Diretor
+  //  assina no papel (fora do sistema). 'aprovada' fica só por retrocompat.
   var ESTADOS_PERMUTA = ['proposta', 'aprovada', 'confirmada', 'concluida',
                          'rejeitada', 'recusada', 'cancelada', 'expirada'];
   var ESTADOS_VIVOS = { proposta: 1, aprovada: 1 };
@@ -837,12 +849,15 @@
     return clone(p);
   }
 
-  function aprovarPermuta(id, quem) { return _transicao(id, 'proposta', 'aprovada', quem || 'Líder', 'aprovar'); }
+  // 'aprovar' vira um alias de 'confirmar' (retrocompat com dados/telas antigas)
+  function aprovarPermuta(id, quem) { return confirmarPermuta(id, quem); }
   function rejeitarPermuta(id, quem, motivo) {
-    return _transicao(id, ['proposta'], 'rejeitada', quem || 'Líder', 'rejeitar' + (motivo ? ' (' + motivo + ')' : ''));
+    return _transicao(id, ['proposta', 'aprovada'], 'recusada', quem || '?', 'recusar' + (motivo ? ' (' + motivo + ')' : ''));
   }
-  function confirmarPermuta(id, quem) { return _transicao(id, 'aprovada', 'confirmada', quem, 'confirmar o acordo'); }
-  function recusarPermuta(id, quem) { return _transicao(id, ['aprovada', 'proposta'], 'recusada', quem, 'recusar o acordo'); }
+  function confirmarPermuta(id, quem) {
+    return _transicao(id, ['proposta', 'aprovada'], 'confirmada', quem, 'confirmar o acordo');
+  }
+  function recusarPermuta(id, quem) { return _transicao(id, ['proposta', 'aprovada'], 'recusada', quem, 'recusar o acordo'); }
   function cancelarPermuta(id, quem) {
     return _transicao(id, ['proposta', 'aprovada', 'confirmada'], 'cancelada', quem || '?', 'cancelar');
   }
@@ -1011,7 +1026,8 @@
     KEY: KEY, TIPOS_EVT: TIPOS_EVT, MOTIVOS: MOTIVOS, CARGOS: CARGOS, CAMPOS_PESSOAIS: CAMPOS_PESSOAIS,
     config: config, setConfig: setConfig, configTodos: configTodos, rotacaoConfig: rotacaoConfig,
     verComo: verComo, setVerComo: setVerComo, papelAtual: papelAtual,
-    ehLider: ehLider, ehGerente: ehGerente, visivelPara: visivelPara,
+    ehLider: ehLider, ehGerente: ehGerente, ehAdmin: ehAdmin, podeGerirFerias: podeGerirFerias,
+    equipe: equipe, visivelPara: visivelPara,
     funcionarios: funcionarios, funcionarioPorNome: funcionarioPorNome,
     funcionarioPorMatricula: funcionarioPorMatricula, funcionarioPorId: funcionarioPorId,
     ehPlantao: ehPlantao, ehCoringa: ehCoringa,

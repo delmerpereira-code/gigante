@@ -23,7 +23,8 @@
       '<div class="campo"><label>Cargo</label><select id="fc-cargo"><option value="investigador">Investigador</option><option value="delegado">Delegado</option><option value="diretor">Diretor</option><option value="administrador">Administrador</option></select></div>' +
       '<div class="campo"><label>Regime</label><select id="fc-reg"><option value="plantao">Plantão</option><option value="coringa">Coringa</option><option value="expediente">Expediente</option><option value="">Fora da escala</option></select></div>' +
       '<div class="campo" id="fc-wpl"><label>Plantão</label><select id="fc-pl"><option value="">—</option>' + ord.map(function (c) { return '<option value="' + c + '">' + c + '</option>'; }).join('') + '</select></div>' +
-      '<div class="campo"><label>Acesso de líder</label><select id="fc-lider"><option value="nao">Não</option><option value="sim">Sim</option></select></div>' +
+      '<div class="campo"><label>Líder operacional (aprova férias, lança licença)</label><select id="fc-lider"><option value="nao">Não</option><option value="sim">Sim</option></select></div>' +
+      '<div class="campo"><label>Usuário de sistema (não aparece na equipe)</label><select id="fc-oculto"><option value="nao">Não</option><option value="sim">Sim</option></select><div class="card-sub">Para prestador / dono do sistema. Combine com Cargo = Administrador.</div></div>' +
       '<div class="campo"><label>Status</label><select id="fc-st"><option value="ativo">Ativo</option><option value="ferias">Férias</option><option value="licenca">Licença</option><option value="afastado">Afastado</option></select></div>' +
       '<div class="campo"><label>Admissão</label><input type="date" id="fc-adm"></div>' +
       '<div class="campo"><label>Saldo inicial banco (h)</label><input type="number" id="fc-saldo" step="0.5" value="0"></div>' +
@@ -44,6 +45,8 @@
     function limpar() {
       editId = ''; fotoAtual = '';
       card.querySelectorAll('input').forEach(function (i) { i.value = i.id === 'fc-saldo' ? '0' : (i.id === 'fc-df' ? '30' : ''); });
+      $('#fc-lider').value = 'nao'; $('#fc-oculto').value = 'nao'; $('#fc-reg').value = 'plantao';
+      $('#fc-cargo').value = 'investigador'; $('#fc-st').value = 'ativo';
       $('#fc-fbox').textContent = 'sem foto'; $('#fc-tit').textContent = 'Novo funcionário';
       $('#fc-cancelar').hidden = true; $('#fc-erro').textContent = '';
       $('#fc-login-info').textContent = 'Defina e-mail (contato) + senha inicial para criar o acesso.';
@@ -72,7 +75,9 @@
       $('#fc-mat').value = f.matricula || ''; $('#fc-nc').value = f.nome_completo || ''; $('#fc-ns').value = f.nome_curto || '';
       $('#fc-c1').value = f.celular || ''; $('#fc-c2').value = f.celular2 || ''; $('#fc-nasc').value = f.nascimento || '';
       $('#fc-cargo').value = f.cargo; $('#fc-reg').value = f.regime || ''; togglePl(); $('#fc-pl').value = f.plantao || '';
-      $('#fc-lider').value = f.lider === 'sim' ? 'sim' : 'nao'; $('#fc-st').value = f.status || 'ativo';
+      $('#fc-lider').value = f.lider === 'sim' ? 'sim' : 'nao';
+      $('#fc-oculto').value = f.oculto === 'sim' ? 'sim' : 'nao';
+      $('#fc-st').value = f.status || 'ativo';
       $('#fc-adm').value = f.admissao || ''; $('#fc-saldo').value = f.saldo_inicial_banco || 0; $('#fc-df').value = f.dias_ferias_ano || 30;
       $('#fc-fbox').innerHTML = fotoAtual ? '<img src="' + fotoAtual + '">' : 'sem foto';
       $('#fc-tit').textContent = 'Editando: ' + f.nome_curto; $('#fc-cancelar').hidden = false; corpo.scrollTop = 0;
@@ -82,7 +87,7 @@
         id: editId || undefined, matricula: $('#fc-mat').value.trim(), nome_completo: $('#fc-nc').value, nome_curto: $('#fc-ns').value,
         foto: fotoAtual, email: $('#fc-email-c').value.trim(), celular: $('#fc-c1').value, celular2: $('#fc-c2').value, nascimento: $('#fc-nasc').value,
         cargo: $('#fc-cargo').value, regime: $('#fc-reg').value, plantao: $('#fc-reg').value === 'plantao' ? $('#fc-pl').value : '',
-        lider: $('#fc-lider').value, status: $('#fc-st').value, admissao: $('#fc-adm').value,
+        lider: $('#fc-lider').value, oculto: $('#fc-oculto').value, status: $('#fc-st').value, admissao: $('#fc-adm').value,
         saldo_inicial_banco: $('#fc-saldo').value, dias_ferias_ano: $('#fc-df').value
       };
       if (authId) d.auth_user_id = authId;
@@ -110,16 +115,19 @@
       } catch (e) { A.loading(false); $('#fc-erro').textContent = e.message; }
     }
     function render() {
-      var lista = S.funcionarios().sort(function (a, b) {
+      var todos = S.funcionarios().sort(function (a, b) {
         var ra = a.regime === 'plantao' ? 0 : (a.regime === 'coringa' ? 1 : 2), rb = b.regime === 'plantao' ? 0 : (b.regime === 'coringa' ? 1 : 2);
         if (ra !== rb) return ra - rb;
         var d = ord.indexOf(a.plantao) - ord.indexOf(b.plantao);
         return d || a.nome_curto.localeCompare(b.nome_curto);
       });
+      var lista = todos.filter(function (f) { return f.oculto !== 'sim'; });
+      var sistema = todos.filter(function (f) { return f.oculto === 'sim'; });
       var saldos = S.saldos();
       listaCard.innerHTML = '';
-      listaCard.appendChild(A.h('h3', { text: 'Funcionários (' + lista.length + ')' }));
-      lista.forEach(function (f) {
+      listaCard.appendChild(A.h('h3', { text: 'Equipe (' + lista.length + ')' }));
+      lista.concat(sistema).forEach(function (f, i) {
+        if (i === lista.length) listaCard.appendChild(A.h('h3', { text: 'Usuários de sistema', style: 'margin-top:16px;color:var(--text2)' }));
         var s = (f.nome_curto in saldos) ? saldos[f.nome_curto] : (Number(f.saldo_inicial_banco) || 0);
         var foto = f.foto ? '<img class="foto-mini" src="' + f.foto + '">' : '<span class="foto-mini vazia">' + A.esc((f.nome_curto || '?').charAt(0)) + '</span>';
         var d = A.h('div', { class: 'card', style: 'margin-top:8px' });

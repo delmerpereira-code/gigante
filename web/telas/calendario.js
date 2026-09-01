@@ -18,7 +18,7 @@
 
   function pessoas() {
     var o = cfg().ordem;
-    return S.funcionarios().filter(function (f) {
+    return S.equipe().filter(function (f) {
       return f.regime === 'plantao' || f.regime === 'coringa' || f.regime === 'expediente';
     })
       .sort(function (a, b) {

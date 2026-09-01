@@ -4,27 +4,25 @@
   var S = window.Store, A = window.App;
 
   var EST = {
-    proposta: ['aguardando aprovação', 'a'], aprovada: ['aguardando confirmação', 'a'],
-    confirmada: ['confirmada', 'v'], concluida: ['concluída', 'v'],
-    rejeitada: ['rejeitada', 'r'], recusada: ['recusada', 'r'], cancelada: ['cancelada', 'r'], expirada: ['expirada (prazo)', 'r']
+    proposta: ['aguardando a contraparte', 'a'], aprovada: ['aguardando a contraparte', 'a'],
+    confirmada: ['acordo fechado — imprimir termo', 'v'], concluida: ['concluída', 'v'],
+    rejeitada: ['recusada', 'r'], recusada: ['recusada', 'r'], cancelada: ['cancelada', 'r'], expirada: ['expirada (prazo)', 'r']
   };
   function eu() { return S.papelAtual(); }
   function lider() { return S.ehLider(); }
   function fmtD(iso) { var p = String(iso).slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
   function fmtH(iso) { var d = new Date(iso); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
   function plantonistas() {
-    return S.funcionarios().filter(function (f) { return f.regime === 'plantao'; })
+    return S.equipe().filter(function (f) { return f.regime === 'plantao'; })
       .sort(function (a, b) { return a.nome_curto.localeCompare(b.nome_curto); });
   }
   function rotTurno(t) { return fmtD(t.data) + ' · ' + (t.parte === 'diurno' ? 'diurno 08–20' : 'noturno 20–08') + ' · ' + t.plantao; }
 
   function contador() {
     try {
+      var me = eu();
       return S.permutasVisiveis().filter(function (p) {
-        var me = eu();
-        if (p.estado === 'proposta' && me.tipo === 'lider') return true;
-        if (p.estado === 'aprovada' && me.nome === p.pessoa_b) return true;
-        return false;
+        return (p.estado === 'proposta' || p.estado === 'aprovada') && me.nome === p.pessoa_b;
       }).length || null;
     } catch (e) { return null; }
   }
@@ -93,17 +91,15 @@
 
     function acoes(p) {
       var me = eu(), b = [], A_ = me.nome === p.pessoa_a, B = me.nome === p.pessoa_b, L = me.tipo === 'lider';
-      if (p.estado === 'proposta') { if (L) { b.push('aprovar'); b.push('rejeitar'); } if (A_ || L) b.push('cancelar'); }
-      else if (p.estado === 'aprovada') { if (B) { b.push('confirmar'); b.push('recusar'); } if (A_ || L) b.push('cancelar'); }
-      else if (p.estado === 'confirmada') { if (A_ || B || L) b.push('cancelar'); if (L) b.push('concluir'); }
+      var pend = p.estado === 'proposta' || p.estado === 'aprovada';
+      if (pend) { if (B) { b.push('confirmar'); b.push('recusar'); } if (A_ || B || L) b.push('cancelar'); }
+      else if (p.estado === 'confirmada') { if (A_ || B || L) b.push('cancelar'); if (A_ || B || L) b.push('concluir'); }
       b.push('termo');
       return b;
     }
     var FN = {
-      aprovar: function (id) { return S.aprovarPermuta(id, eu().nome); },
-      rejeitar: function (id) { var m = prompt('Motivo (opcional):'); return m === null ? null : S.rejeitarPermuta(id, eu().nome, m); },
       confirmar: function (id) { return S.confirmarPermuta(id, eu().nome); },
-      recusar: function (id) { return confirm('Recusar? A permuta é cancelada.') ? S.recusarPermuta(id, eu().nome) : null; },
+      recusar: function (id) { return confirm('Recusar o acordo? A permuta é cancelada.') ? S.recusarPermuta(id, eu().nome) : null; },
       cancelar: function (id) { return confirm('Cancelar esta permuta?') ? S.cancelarPermuta(id, eu().nome) : null; },
       concluir: function (id) { return S.concluirPermuta(id); },
       termo: function (id) { termo(id); return null; }
@@ -145,9 +141,8 @@
       lst.forEach(function (p) {
         var e = EST[p.estado] || [p.estado, 'n'];
         var d = A.h('div', { class: 'card', style: 'margin-top:8px' });
-        var falta = p.estado === 'proposta' ? 'Falta o líder aprovar.'
-          : p.estado === 'aprovada' ? 'Falta ' + p.pessoa_b + ' confirmar o acordo.'
-          : p.estado === 'confirmada' ? 'Acordo fechado — o líder pode concluir. Conta já lançada.'
+        var falta = (p.estado === 'proposta' || p.estado === 'aprovada') ? 'Falta ' + p.pessoa_b + ' confirmar o acordo.'
+          : p.estado === 'confirmada' ? 'Acordo fechado — imprima o termo e leve ao Diretor para assinar. Conta já lançada.'
           : '';
         d.innerHTML = '<div class="card-top"><span class="card-titulo">' + p.numero + '</span><span class="tag ' + e[1] + '">' + e[0] + '</span></div>' +
           '<div class="card-linha">' + A.esc(p.pessoa_a) + ' → ' + A.esc(p.pessoa_b) + '</div>' +
@@ -169,7 +164,7 @@
     }
 
     function quitarModal() {
-      var ps = S.funcionarios().filter(function (f) { return f.regime === 'plantao' || f.regime === 'coringa'; }).map(function (f) { return f.nome_curto; }).sort();
+      var ps = S.equipe().filter(function (f) { return f.regime === 'plantao' || f.regime === 'coringa'; }).map(function (f) { return f.nome_curto; }).sort();
       var o = ps.map(function (n) { return '<option value="' + A.esc(n) + '">' + A.esc(n) + '</option>'; }).join('');
       var m = A.abrirModal('<h2>Registrar quitação</h2><div class="form">' +
         '<div class="campo"><label>Quem pagou</label><select id="q-de">' + o + '</select></div>' +

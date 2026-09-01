@@ -8,7 +8,7 @@
   function eu() { return S.papelAtual(); }
   function fmt(iso) { var d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); }
   function pessoas() {
-    return S.funcionarios().filter(function (f) { return f.regime === 'plantao' || f.regime === 'coringa'; })
+    return S.equipe().filter(function (f) { return f.regime === 'plantao' || f.regime === 'coringa'; })
       .sort(function (a, b) { return a.nome_curto.localeCompare(b.nome_curto); });
   }
 

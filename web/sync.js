@@ -249,8 +249,9 @@
       nota: dados.obs || ''
     });
   };
-  Store.aprovarPermuta  = function (id) { return rpcThenPull('permuta_aprovar',  { p_id: id }); };
-  Store.rejeitarPermuta = function (id, quem, motivo) { return rpcThenPull('permuta_rejeitar', { p_id: id, motivo: motivo || '' }); };
+  // líder não aprova permuta: 'aprovar' e 'confirmar' são a mesma transição
+  Store.aprovarPermuta  = function (id) { return rpcThenPull('permuta_confirmar', { p_id: id }); };
+  Store.rejeitarPermuta = function (id, quem, motivo) { return rpcThenPull('permuta_recusar', { p_id: id }); };
   Store.confirmarPermuta = function (id) { return rpcThenPull('permuta_confirmar', { p_id: id }); };
   Store.recusarPermuta  = function (id) { return rpcThenPull('permuta_recusar',  { p_id: id }); };
   Store.cancelarPermuta = function (id) { return rpcThenPull('permuta_cancelar', { p_id: id }); };

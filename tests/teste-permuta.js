@@ -27,12 +27,7 @@ checa('permuta criada em "proposta"', p.estado === 'proposta', p.estado);
 checa('número no formato PERM-AAAA-NNN', /^PERM-\d{4}-\d{3}$/.test(p.numero), p.numero);
 checa('sem conta antes de confirmar', Store.saldoEntre('Camila', 'Adriana') === 0);
 
-checa('B não pode confirmar antes da aprovação', (function () {
-  try { Store.confirmarPermuta(p.id, 'Adriana'); return false; } catch (e) { return true; }
-})());
-
-Store.aprovarPermuta(p.id, 'Diretora');
-checa('após aprovar → "aprovada"', Store.permutaPorId(p.id).estado === 'aprovada');
+// líder não aprova — B confirma direto da proposta
 Store.confirmarPermuta(p.id, 'Adriana');
 checa('após confirmar → "confirmada"', Store.permutaPorId(p.id).estado === 'confirmada');
 checa('conta: Camila deve 12 h a Adriana', Store.saldoEntre('Camila', 'Adriana') === 12,
@@ -42,7 +37,7 @@ checa('contasDe(Adriana) mostra Camila', Store.contasDe('Adriana')[0].outra === 
 
 // ── resumo para o cadastro ───────────────────────────────────────────────
 var p1b = Store.proporPermuta({ pessoa_a: 'Camila', pessoa_b: 'Adriana', turno_a: tc[5], mao_dupla: 'nao' });
-Store.aprovarPermuta(p1b.id, 'Diretora'); Store.confirmarPermuta(p1b.id, 'Adriana');
+Store.confirmarPermuta(p1b.id, 'Adriana');
 var contas = Store.contasDe('Camila');
 checa('Camila deve 2 turnos (24 h) a Adriana', contas[0].turnos === 2 && contas[0].horas === 24,
   JSON.stringify(contas[0]));
@@ -73,16 +68,15 @@ var tb = Store.proximosTurnosDe('Nádia', 8);
 var p2 = Store.proporPermuta({
   pessoa_a: 'Melanye', pessoa_b: 'Nádia', turno_a: ta[2], mao_dupla: 'sim', turno_b: tb[3], obs: ''
 });
-Store.aprovarPermuta(p2.id, 'Diretora');
 Store.confirmarPermuta(p2.id, 'Nádia');
 checa('troca de dia não gera dívida', Store.saldoEntre('Melanye', 'Nádia') === 0);
 
-// ── rejeição encerra ────────────────────────────────────────────────────
+// ── recusa encerra ──────────────────────────────────────────────────────
 var p3 = Store.proporPermuta({ pessoa_a: 'Cássia', pessoa_b: 'Geciane', turno_a: Store.proximosTurnosDe('Cássia', 8)[2], mao_dupla: 'nao' });
-Store.rejeitarPermuta(p3.id, 'Diretora', 'sem cobertura');
-checa('rejeitada é estado final', Store.permutaPorId(p3.id).estado === 'rejeitada');
-checa('não dá para aprovar uma rejeitada', (function () {
-  try { Store.aprovarPermuta(p3.id, 'Diretora'); return false; } catch (e) { return true; }
+Store.recusarPermuta(p3.id, 'Geciane');
+checa('recusada é estado final', Store.permutaPorId(p3.id).estado === 'recusada');
+checa('não dá para confirmar uma recusada', (function () {
+  try { Store.confirmarPermuta(p3.id, 'Geciane'); return false; } catch (e) { return true; }
 })());
 
 // ── visibilidade ────────────────────────────────────────────────────────

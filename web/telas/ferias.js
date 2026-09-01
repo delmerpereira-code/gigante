@@ -8,7 +8,7 @@
   function fmtBR(iso) { var p = String(iso).slice(0, 10).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
   function dias(a, b) { var x = new Date(a + 'T00:00'), y = new Date((b || a) + 'T00:00'); return Math.max(1, Math.round((y - x) / 864e5) + 1); }
   function plantonistas() {
-    return S.funcionarios().filter(function (f) {
+    return S.equipe().filter(function (f) {
       return f.regime === 'plantao' || f.regime === 'coringa' || f.regime === 'expediente';
     }).sort(function (a, b) { return a.nome_curto.localeCompare(b.nome_curto); });
   }
@@ -55,7 +55,7 @@
     }
     function coberturas() {
       var sel = $('#f-sub'), atual = sel.value, quem = $('#f-pessoa').value;
-      var ativos = S.funcionarios().filter(function (f) { return f.status !== 'afastado' && f.nome_curto !== quem; });
+      var ativos = S.equipe().filter(function (f) { return f.status !== 'afastado' && f.nome_curto !== quem; });
       // coringas e expediente primeiro (cobrem ausências), depois os titulares
       var cor = ativos.filter(function (f) { return f.regime === 'coringa'; });
       var exp = ativos.filter(function (f) { return f.regime === 'expediente'; });
