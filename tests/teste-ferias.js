@@ -124,6 +124,19 @@ var lanc = Store.bancoHoras().filter(function (l) { return l.pessoa === 'Tainá'
 checa('assumindo: 48h de folga_perdida no banco da Tainá', lanc.length === 1 && lanc[0].horas === 48,
   JSON.stringify(lanc));
 
+// ── expediente cobre sem gerar quebra automática ─────────────────────────
+Store.limparTudo();
+Store.seedElencoExemplo();
+Store.setConfig('ancora_rotacao', '2026-09-01');
+Store.salvarFuncionario({ nome_curto: 'Expedito', nome_completo: 'Expedito X', matricula: 'EXP1',
+  cargo: 'investigador', regime: 'expediente', status: 'ativo' });
+var evExp = Store.salvarEvento({ tipo: 'licenca_medica', pessoa: 'Melanye', substituto: 'Expedito',
+  inicio: '2026-09-05', fim: '2026-09-06' });
+checa('expediente cobrindo: sem quebra automática', !evExp.quebraCarga || evExp.quebraCarga.length === 0,
+  JSON.stringify(evExp.quebraCarga));
+checa('expediente cobrindo: nada no banco', Store.bancoHoras().filter(function (l) { return l.pessoa === 'Expedito'; }).length === 0);
+checa('avaliarCoberturas ignora expediente', Store.avaliarCoberturas('Expedito', null, undefined).length === 0);
+
 console.log('\n' + ok + ' ok, ' + falhas + ' falha(s).');
 Store.limparTudo();
 Store.setVerComo('Lider');

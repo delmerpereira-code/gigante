@@ -280,6 +280,9 @@
 
   function ehPlantao(f) { return f && f.regime === 'plantao'; }
   function ehCoringa(f) { return f && f.regime === 'coringa'; }
+  function ehExpediente(f) { return f && f.regime === 'expediente'; }
+  // quem pode ser designado para cobrir uma ausência
+  function ehCobridor(f) { return ehCoringa(f) || ehExpediente(f); }
 
   function plantoes() {
     var cfg = rotacaoConfig();
@@ -493,6 +496,11 @@
    */
   function avaliarCoberturas(coringa, eventoExtra, excluirId) {
     var cfg = rotacaoConfig();
+    // Expediente é urgência: cobre pontualmente e folga em seguida — sem
+    // ciclo de 120h, então não há quebra de descanso a calcular. O líder
+    // gerencia esses casos manualmente.
+    var subF = funcionarioPorNome(coringa);
+    if (subF && subF.regime === 'expediente') return [];
     var evs = _db.Eventos.filter(function (e) {
       return (e.tipo === 'ferias' || e.tipo === 'licenca_medica') &&
         e.substituto === coringa && e.id !== excluirId && (!eventoExtra || e.id !== eventoExtra.id);

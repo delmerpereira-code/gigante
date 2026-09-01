@@ -20,7 +20,7 @@ drop type  if exists cargo_t, regime_t, status_func_t, tipo_evento_t, nivel_feri
 
 -- ── enums ────────────────────────────────────────────────────────────────
 create type cargo_t         as enum ('investigador','delegado','diretor','administrador');
-create type regime_t        as enum ('plantao','coringa','externo');
+create type regime_t        as enum ('plantao','coringa','expediente','externo');
 create type status_func_t   as enum ('ativo','ferias','licenca','afastado');
 create type tipo_evento_t   as enum ('folga_abatendo_banco','convocacao',
                                      'sobreaviso_escalado','sobreaviso_acionado',

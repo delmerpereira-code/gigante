@@ -38,8 +38,8 @@
   function d10(v) { return v ? String(v).slice(0, 10) : null; }
   function uuidValido(v) { return typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v); }
 
-  var REGIME_CACHE = { plantao: 'plantao', coringa: 'coringa', externo: '' };
-  var REGIME_DB = { plantao: 'plantao', coringa: 'coringa', '': 'externo', externo: 'externo' };
+  var REGIME_CACHE = { plantao: 'plantao', coringa: 'coringa', expediente: 'expediente', externo: '' };
+  var REGIME_DB = { plantao: 'plantao', coringa: 'coringa', expediente: 'expediente', '': 'externo', externo: 'externo' };
 
   function funcCache(r) {
     return {

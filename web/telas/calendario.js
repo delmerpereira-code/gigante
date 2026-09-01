@@ -12,11 +12,15 @@
     convocacao: { c: 'conv', s: 'C' }, troca: { c: 'perm', s: 'P' }
   };
   function cfg() { return S.rotacaoConfig(); }
-  function rank(f) { return f.regime === 'plantao' ? 0 : (f.regime === 'coringa' ? 1 : 2); }
+  function rank(f) {
+    return f.regime === 'plantao' ? 0 : (f.regime === 'coringa' ? 1 : (f.regime === 'expediente' ? 2 : 3));
+  }
 
   function pessoas() {
     var o = cfg().ordem;
-    return S.funcionarios().filter(function (f) { return f.regime === 'plantao' || f.regime === 'coringa'; })
+    return S.funcionarios().filter(function (f) {
+      return f.regime === 'plantao' || f.regime === 'coringa' || f.regime === 'expediente';
+    })
       .sort(function (a, b) {
         if (rank(a) !== rank(b)) return rank(a) - rank(b);
         var d = o.indexOf(a.plantao) - o.indexOf(b.plantao);
@@ -79,7 +83,8 @@
       head += '</tr>';
 
       var body = pes.map(function (p) {
-        var rot = p.regime === 'coringa' ? 'coringa' : (p.plantao || '—');
+        var rot = p.regime === 'coringa' ? 'coringa'
+          : (p.regime === 'expediente' ? 'expediente' : (p.plantao || '—'));
         var tr = '<tr><td class="cal-nome">' + A.esc(p.nome_curto) + '<span>' + A.esc(rot) + '</span></td>';
         for (var d = 1; d <= total; d++) tr += celula(p, d, C, evs);
         return tr + '</tr>';
