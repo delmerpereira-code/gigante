@@ -152,13 +152,15 @@
     if (ehL || ehA) return { tipo: 'lider', nome: f.nome_curto, lider: ehL, admin: ehA };
     return { tipo: f ? 'funcionario' : 'lider', nome: f ? f.nome_curto : v, lider: false, admin: false };
   }
-  // acesso de gestão (vê tudo, gerencia): líder OU administrador de sistema
-  function ehLider() { return papelAtual().tipo === 'lider'; }
+  // Perfis:
+  //   • líder        → gestão do processo (aprova/ajusta férias e licença,
+  //                    cobertura, vê banco/permuta de todos).
+  //   • administrador → acesso a TUDO (o que o líder faz + cadastro, config,
+  //                    logins, backup). administrador ⊇ líder.
+  function ehLider() { return papelAtual().tipo === 'lider'; }   // líder OU admin: acesso de gestão
   var ehGerente = ehLider; // alias de compatibilidade
-  // administrador de sistema (cadastro, config, logins, backup) — NÃO decide férias
-  function ehAdmin() { return papelAtual().admin === true; }
-  // quem decide férias/licença e ajusta cobertura: só o líder operacional (Cassia)
-  function podeGerirFerias() { return papelAtual().lider === true; }
+  function ehAdmin() { return papelAtual().admin === true; }     // só administrador
+  function podeGerirFerias() { return ehLider(); }               // líder e admin decidem férias
   /** Filtra uma lista: líder vê tudo, funcionário só o que é dele. */
   function visivelPara(lista, campoPessoa) {
     var p = papelAtual();
