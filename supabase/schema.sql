@@ -51,6 +51,7 @@ create table funcionarios (
   regime          regime_t      not null default 'plantao',
   plantao         text          not null default '', -- 'PL I'..'PL V' se regime='plantao'
   lider           boolean       not null default false,
+  oculto          boolean       not null default false,   -- usuário de sistema (não aparece na equipe)
   admissao        date,
   status          status_func_t not null default 'ativo',
   saldo_inicial_banco numeric   not null default 0,
@@ -220,10 +221,10 @@ create or replace function guard_func_update() returns trigger language plpgsql 
 begin
   -- só barra funcionário autenticado; SQL admin (sem auth.uid) sempre passa
   if auth.uid() is not null and not is_lider() then
-    if (new.matricula,new.cargo,new.regime,new.plantao,new.lider,new.status,
+    if (new.matricula,new.cargo,new.regime,new.plantao,new.lider,new.oculto,new.status,
         new.saldo_inicial_banco,new.dias_ferias_ano,new.auth_user_id)
        is distinct from
-       (old.matricula,old.cargo,old.regime,old.plantao,old.lider,old.status,
+       (old.matricula,old.cargo,old.regime,old.plantao,old.lider,old.oculto,old.status,
         old.saldo_inicial_banco,old.dias_ferias_ano,old.auth_user_id)
     then raise exception 'Só o líder altera matrícula, cargo, regime, plantão, status, saldos ou vínculo de login.';
     end if;
