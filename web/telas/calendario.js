@@ -79,7 +79,8 @@
       head += '</tr>';
 
       var body = pes.map(function (p) {
-        var tr = '<tr><td class="cal-nome">' + A.esc(p.nome_curto) + '<span>' + (p.plantao || 'coringa') + '</span></td>';
+        var rot = p.regime === 'coringa' ? 'coringa' : (p.plantao || '—');
+        var tr = '<tr><td class="cal-nome">' + A.esc(p.nome_curto) + '<span>' + A.esc(rot) + '</span></td>';
         for (var d = 1; d <= total; d++) tr += celula(p, d, C, evs);
         return tr + '</tr>';
       }).join('');
@@ -89,12 +90,25 @@
     }
 
     function celula(p, dia, C, evs) {
-      var base = '', tit = [];
-      if (p.regime === 'plantao' && p.plantao) {
-        var f = R.fase(p.plantao, new Date(ano, mes, dia), C);
+      var base = '', tit = [], cobrindo = '';
+      // plantão efetivo do dia: o próprio, ou o que está cobrindo como substituto
+      var plEfetivo = p.regime === 'plantao' ? p.plantao : '';
+      evs.forEach(function (e) {
+        if ((e.tipo === 'ferias' || e.tipo === 'licenca_medica') && e.substituto === p.nome_curto &&
+            cobreDia(e.inicio, e.fim, dia)) {
+          var alvo = S.funcionarioPorNome(e.pessoa);
+          if (alvo && alvo.plantao) { plEfetivo = alvo.plantao; cobrindo = alvo.plantao; }
+        }
+      });
+      if (plEfetivo) {
+        var f = R.fase(plEfetivo, new Date(ano, mes, dia), C);
         base = f === 0 ? 't1' : (f === 1 ? 't2' : 'folga');
       }
       var mk = '';
+      if (cobrindo && cobrindo !== p.plantao) {
+        mk += '<i class="mk cob">' + A.esc(cobrindo.replace('PL ', '')) + '</i>';
+        tit.push('cobrindo ' + cobrindo);
+      }
       evs.forEach(function (e) {
         if (e.pessoa !== p.nome_curto || !MARCA[e.tipo] || !cobreDia(e.inicio, e.fim, dia)) return;
         var m = MARCA[e.tipo];
