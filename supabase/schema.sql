@@ -193,8 +193,12 @@ $$;
 -- ═══════════════════════════════════════════════════════════════════════════
 --  AUTENTICAÇÃO / PERMISSÕES
 -- ═══════════════════════════════════════════════════════════════════════════
+-- acesso de gestão = flag lider OU cargo administrador (admin ⊇ líder)
 create or replace function is_lider() returns boolean language sql stable security definer as $$
-  select exists (select 1 from funcionarios where auth_user_id = auth.uid() and lider);
+  select exists (
+    select 1 from funcionarios
+    where auth_user_id = auth.uid() and (lider or cargo = 'administrador')
+  );
 $$;
 create or replace function meu_funcionario_id() returns uuid language sql stable security definer as $$
   select id from funcionarios where auth_user_id = auth.uid();
