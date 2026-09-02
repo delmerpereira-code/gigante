@@ -1,16 +1,8 @@
-# Netlify — deploy automático a partir do GitHub.
-# A pasta publicada é web/. Antes de publicar, o build gera web/config.js
-# com as chaves do Supabase lidas das variáveis de ambiente do site
-# (Site settings → Environment variables): SUPABASE_URL e SUPABASE_ANON_KEY.
-
+# Deploy estático — publica web/ direto, sem build (web/config.js já está no repo).
 [build]
   publish = "web"
-  command = "sh scripts/netlify-config.sh"
+  command = ""
 
-[build.environment]
-  NODE_VERSION = "20"
-
-# SPA/PWA: o próprio index.html é a casca; não há rotas de servidor.
 [[headers]]
   for = "/sw.js"
   [headers.values]

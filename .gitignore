@@ -3,8 +3,8 @@
 .clasprc.json
 apps-script/.clasp.json
 
-# Supabase — URL e chave anon do projeto (cada máquina cria a sua)
-web/config.js
+# Supabase — a chave ANON é pública por design (RLS protege os dados),
+# então web/config.js VAI para o repositório privado. A service_role NUNCA.
 supabase/.env
 
 # node
