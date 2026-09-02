@@ -194,15 +194,59 @@
         }
       });
 
+      // ── coringa/expediente: cadastrar cobertura de um turno do dia ──────────
+      var addHtml = '';
+      if (f.regime === 'coringa' || f.regime === 'expediente') {
+        var td = R.turnosDoDia(new Date(ano, mes, dia), C);
+        [['diurno', td.turno1], ['noturno', td.turno2]].forEach(function (par) {
+          var parte = par[0], pl = par[1]; if (!pl) return;
+          var jaTem = S.eventos().some(function (e) {
+            return e.tipo === 'turno_coringa' && e.plantao === pl && isoLocal(e.inicio) === diaIso &&
+              (new Date(e.inicio).getHours() >= 12) === (parte === 'noturno');
+          });
+          var gap = S.eventos().some(function (e) {
+            if ((e.tipo !== 'ferias' && e.tipo !== 'licenca_medica') || e.situacao === 'rejeitada' || e.substituto) return false;
+            var g = S.funcionarioPorNome(e.pessoa);
+            var d0 = String(e.inicio).slice(0, 10), d1 = String(e.fim).slice(0, 10);
+            return g && g.plantao === pl && d0 <= diaIso && diaIso <= d1;
+          });
+          addHtml += '<div class="add-cob' + (gap ? ' gap' : '') + '">' +
+            '<span><b>' + pl + '</b> · ' + (parte === 'diurno' ? 'diurno 08–20' : 'noturno 20–08') +
+            (jaTem ? ' · <span class="tag v">já coberto</span>' : gap ? ' · <span class="tag r">sem cobertura</span>' : '') + '</span>' +
+            (jaTem ? '' : '<button class="btn pequeno pri" data-cob="' + pl + '|' + parte + '">' + A.esc(nome.split(' ')[0]) + ' cobre</button>') +
+            '</div>';
+        });
+        if (addHtml) addHtml = '<div class="dd-add"><h3>Cadastrar cobertura</h3>' + addHtml + '</div>';
+      }
+
       var m = A.abrirModal('<h2>' + A.esc(nome) + ' · ' + dia + '/' + ('0' + (mes + 1)).slice(-2) + '</h2>' +
         (linhas.length ? '<ul class="lista-alertas">' + linhas.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul>'
           : '<div class="muted small">Nada marcado nesse dia.</div>') +
+        addHtml +
         '<div class="modal-acoes"><button class="btn sec" id="dd-x">Fechar</button></div>');
       m.querySelector('#dd-x').addEventListener('click', A.fecharModal);
       m.querySelectorAll('[data-del]').forEach(function (b) {
         b.addEventListener('click', function () {
           if (!confirm('Excluir este turno avulso?')) return;
           Promise.resolve(S.removerEvento(b.getAttribute('data-del'))).then(function () { A.fecharModal(); draw(); });
+        });
+      });
+      m.querySelectorAll('[data-cob]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var p = b.getAttribute('data-cob').split('|'), pl = p[0], parte = p[1];
+          var t = S.turnoIso(diaIso, parte);
+          var r = S.salvarEvento({ tipo: 'turno_coringa', pessoa: nome, plantao: pl, inicio: t.inicio, fim: t.fim,
+            obs: 'cobertura ' + pl });
+          Promise.resolve(r).then(function () {
+            var res = r || {};
+            if (res.quebraTurno && !res.quebraTurnoAssumida) {
+              if (confirm('Fura o descanso de 120h de ' + nome + ' (' + res.quebraTurno.horasPerdidas + ' h). Assumir e lançar no banco?')) {
+                S.salvarEvento({ tipo: 'turno_coringa', pessoa: nome, plantao: pl, inicio: t.inicio, fim: t.fim, obs: 'cobertura ' + pl, id: res.id, assumirQuebra: true });
+              }
+            }
+            A.fecharModal(); draw();
+            A.toast(nome + ' cobrindo ' + pl + ' · ' + parte, 'sucesso');
+          }).catch(function (e) { A.toast(e.message || String(e), 'erro'); });
         });
       });
     }
