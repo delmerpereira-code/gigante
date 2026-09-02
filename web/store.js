@@ -592,6 +592,8 @@
     if (!reg.pessoa) throw new Error('Selecione a pessoa.');
     if (!reg.inicio) throw new Error('Informe o início.');
     if (!reg.fim) reg.fim = reg.inicio;
+    if (String(reg.fim).slice(0, 10) < String(reg.inicio).slice(0, 10))
+      throw new Error('A data fim não pode ser antes do início.');
 
     var antigo = dados.id ? _db.Eventos[idxEvt(dados.id)] : null;
     reg.id = dados.id || uid();
@@ -668,8 +670,11 @@
     } else if (decisao === 'modificar') {
       if (!just) throw new Error('Modificar exige justificativa.');
       if (!extra.inicio) throw new Error('Informe as novas datas.');
+      var nfim = extra.fim || extra.inicio;
+      if (String(nfim).slice(0, 10) < String(extra.inicio).slice(0, 10))
+        throw new Error('A data fim não pode ser antes do início.');
       e.inicio = extra.inicio;
-      e.fim = extra.fim || extra.inicio;
+      e.fim = nfim;
       e.situacao = 'aprovada';
       e.justificativa = just;
       var av = avaliarFerias(e.pessoa, e.inicio, e.fim, e.id, false, 'ferias', e.substituto);
