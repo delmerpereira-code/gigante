@@ -113,6 +113,23 @@ var cam2 = Store.funcionarioPorNome('Camila S.');
 checa('apenasPessoais não altera regime/plantão', cam2.regime === 'plantao' && cam2.plantao === 'PL IV',
   cam2.regime + '/' + cam2.plantao);
 
+// ── turno avulso de coringa: rastreia e avisa quebra de 120h ─────────────
+Store.limparTudo(); Store.seedElencoExemplo(); Store.setConfig('ancora_rotacao', '2026-09-01');
+var tn = Store.turnoIso('2026-09-03', 'noturno');
+Store.salvarEvento({ tipo: 'turno_coringa', pessoa: 'Tainá', plantao: 'PL V', inicio: tn.inicio, fim: tn.fim });
+var td = Store.turnoIso('2026-09-05', 'diurno');
+var rq = Store.salvarEvento({ tipo: 'turno_coringa', pessoa: 'Tainá', plantao: 'PL III', inicio: td.inicio, fim: td.fim });
+checa('turno_coringa detecta quebra de descanso', rq.quebraTurno && rq.quebraTurno.horasPerdidas === 48, rq.quebraTurno && rq.quebraTurno.horasPerdidas);
+checa('sem assumir: nada no banco', Store.bancoHoras().filter(function (l) { return l.pessoa === 'Tainá'; }).length === 0);
+Store.removerEvento(rq.id);
+var ra = Store.salvarEvento({ tipo: 'turno_coringa', pessoa: 'Tainá', plantao: 'PL III', inicio: td.inicio, fim: td.fim, assumirQuebra: true });
+checa('assumindo: 48h de folga_perdida no banco da Tainá',
+  Store.bancoHoras().filter(function (l) { return l.pessoa === 'Tainá' && l.motivo === 'folga_perdida' && l.horas === 48; }).length === 1);
+checa('recusa turno_coringa para plantonista', (function () {
+  try { Store.salvarEvento({ tipo: 'turno_coringa', pessoa: 'Camila', plantao: 'PL I', inicio: td.inicio, fim: td.fim }); return false; }
+  catch (e) { return true; }
+})());
+
 // ── resultado ────────────────────────────────────────────────────────────
 console.log('\n' + ok + ' ok, ' + falhas + ' falha(s).');
 Store.limparTudo();

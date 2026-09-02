@@ -28,13 +28,23 @@
       return e.pessoa === nome && String(e.inicio).slice(0, 10) <= dia && dia <= String(e.fim).slice(0, 10);
     })[0] || null;
   }
+  function coringasNoTurno(pl, d, parte) {
+    var dia = iso(d);
+    return S.eventos().filter(function (e) {
+      if (e.tipo !== 'turno_coringa' || e.plantao !== pl) return false;
+      if (String(e.inicio).slice(0, 10) !== dia) return false;
+      if (!parte) return true;
+      var diurno = new Date(e.inicio).getHours() < 12;
+      return parte === 'diurno' ? diurno : !diurno;
+    }).map(function (e) { return e.pessoa; });
+  }
   // Nomes na escala do dia, já trocando quem está de férias/licença pela
-  // coringa que cobre (campo "substituto" do evento). Retorna HTML.
-  function nomesNoDia(pl, d) {
+  // coringa que cobre (campo "substituto") e somando os turnos avulsos de coringa.
+  function nomesNoDia(pl, d, parte) {
     var dd = S.plantoes().filter(function (x) { return x.codigo === pl; })[0] || {};
     var base = [dd.pessoa_1, dd.pessoa_2].filter(Boolean);
-    if (!base.length) return '—';
-    return base.map(function (nome) {
+    var linha = (base.length ? base : ['—']).map(function (nome) {
+      if (nome === '—') return '—';
       var a = ausenciaDe(nome, d);
       if (!a) return A.esc(nome);
       var mot = a.tipo === 'ferias' ? 'férias' : 'licença';
@@ -43,7 +53,11 @@
           '<span class="cobre-de"> (cobre ' + A.esc(nome) + ' · ' + mot + ')</span>';
       }
       return '<span class="ausente">' + A.esc(nome) + '</span><span class="cobre-de"> (' + mot + ' · sem cobertura)</span>';
-    }).join(' + ');
+    });
+    coringasNoTurno(pl, d, parte).forEach(function (c) {
+      linha.push('<span class="cobre">' + A.esc(c) + '</span><span class="cobre-de"> (coringa avulsa)</span>');
+    });
+    return linha.join(' + ');
   }
   function ehHoje(d) { return d.toDateString() === hoje.toDateString(); }
   function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -93,8 +107,8 @@
         card.innerHTML =
           '<div class="dia-cab">' + ('0' + d.getDate()).slice(-2) + ' · ' + DIAS[d.getDay()] +
             (ehHoje(d) ? ' <span class="tag v">hoje</span>' : '') + '</div>' +
-          '<div class="dia-tur"><span class="dia-rot">Diurno</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + nomesNoDia(t.turno1, d) + '</span></div>' +
-          '<div class="dia-tur"><span class="dia-rot">Noturno</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + nomesNoDia(t.turno2, d) + '</span></div>';
+          '<div class="dia-tur"><span class="dia-rot">Diurno</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + nomesNoDia(t.turno1, d, 'diurno') + '</span></div>' +
+          '<div class="dia-tur"><span class="dia-rot">Noturno</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + nomesNoDia(t.turno2, d, 'noturno') + '</span></div>';
         card.addEventListener('click', function () {
           var p = this.getAttribute('data-iso').split('-');
           estadoModal(new Date(+p[0], +p[1] - 1, +p[2]));
@@ -130,8 +144,8 @@
       var dObj = new Date(val + 'T12:00');
       var t = R.turnosDoDia(dObj, cfg());
       m.querySelector('#es-turnos').innerHTML =
-        '<div class="dia-tur"><span class="dia-rot">Diurno · 08–20</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + nomesNoDia(t.turno1, dObj) + '</span></div>' +
-        '<div class="dia-tur"><span class="dia-rot">Noturno · 20–08</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + nomesNoDia(t.turno2, dObj) + '</span></div>';
+        '<div class="dia-tur"><span class="dia-rot">Diurno · 08–20</span> ' + pill(t.turno1) + ' <span class="dia-nm">' + nomesNoDia(t.turno1, dObj, 'diurno') + '</span></div>' +
+        '<div class="dia-tur"><span class="dia-rot">Noturno · 20–08</span> ' + pill(t.turno2) + ' <span class="dia-nm">' + nomesNoDia(t.turno2, dObj, 'noturno') + '</span></div>';
       var inst = new Date(val + 'T08:30:00');
       m.querySelector('#es-res').innerHTML = cfg().ordem.map(function (pl) {
         var e = R.estadoEm(pl, inst, cfg());

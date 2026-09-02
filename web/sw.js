@@ -1,12 +1,12 @@
 /* Service worker — Controle de Plantão (PWA) */
-const CACHE = 'plantao-v30';
+const CACHE = 'plantao-v31';
 const ASSETS = [
   './', './index.html', './app.css', './app.js', './manifest.json', './icon.svg',
   './termos/permuta-modelo.docx',
   './vendor/pizzip.min.js', './vendor/docxtemplater.js',
   './rotacao.js', './store.js', './db.js', './sync.js', './foto.js',
   './telas/calendario.js', './telas/escala.js', './telas/ferias.js', './telas/permuta.js',
-  './telas/eventos.js', './telas/banco.js', './telas/meu-cadastro.js',
+  './telas/coringas.js', './telas/eventos.js', './telas/banco.js', './telas/meu-cadastro.js',
   './telas/funcionarios.js', './telas/config.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap'

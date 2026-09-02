@@ -24,7 +24,7 @@ create type regime_t        as enum ('plantao','coringa','expediente','externo')
 create type status_func_t   as enum ('ativo','ferias','licenca','afastado');
 create type tipo_evento_t   as enum ('folga_abatendo_banco','convocacao',
                                      'sobreaviso_escalado','sobreaviso_acionado',
-                                     'ferias','licenca_medica');
+                                     'ferias','licenca_medica','turno_coringa');
 create type nivel_ferias_t  as enum ('livre','impacto','bloqueado');
 create type sentido_banco_t as enum ('entrada','saida');
 create type motivo_banco_t  as enum ('folga_perdida','convocacao','sobreaviso_acionado',
@@ -77,6 +77,7 @@ create table eventos (
   tipo           tipo_evento_t not null,
   funcionario_id uuid not null references funcionarios(id) on delete cascade,
   substituto_id  uuid references funcionarios(id) on delete set null,
+  plantao        text,                          -- turno_coringa: plantão coberto
   inicio         timestamptz not null,
   fim            timestamptz not null,
   irregular      boolean not null default false,

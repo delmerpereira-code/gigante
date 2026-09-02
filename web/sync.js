@@ -73,6 +73,7 @@
   function evtCache(r) {
     return {
       id: r.id, tipo: r.tipo, pessoa: nomeDe(r.funcionario_id), substituto: nomeDe(r.substituto_id),
+      plantao: r.plantao || '',
       inicio: r.inicio, fim: r.fim, irregular: r.irregular ? 'sim' : 'nao',
       nivel: r.nivel || '', obs: r.obs || '',
       situacao: r.situacao || '', justificativa: r.justificativa || '', decidido_por: r.decidido_por || ''
@@ -81,7 +82,7 @@
   function evtDB(e) {
     return {
       id: e.id, tipo: e.tipo, funcionario_id: idDe(e.pessoa),
-      substituto_id: idDe(e.substituto), inicio: e.inicio, fim: e.fim,
+      substituto_id: idDe(e.substituto), plantao: e.plantao || null, inicio: e.inicio, fim: e.fim,
       irregular: e.irregular === 'sim', nivel: e.nivel || null, obs: e.obs || '',
       situacao: e.situacao || null, justificativa: e.justificativa || '', decidido_por: e.decidido_por || ''
     };

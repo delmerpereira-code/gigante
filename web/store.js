@@ -554,6 +554,72 @@
     return quebras;
   }
 
+  // ─── Turno avulso de coringa (rastrear a "bagunça") ───────────────────────
+  //  A coringa/expediente é plugada em turnos soltos de plantões diferentes.
+  //  Aqui só REGISTRAMOS e avisamos quando o descanso de 120h é furado.
+  function _turnoIso(data, parte) {
+    var d0 = String(data).slice(0, 10);
+    if (parte === 'noturno') {
+      var dn = new Date(d0 + 'T20:00:00');
+      var fim = new Date(dn.getTime() + 12 * 3600000);
+      return { inicio: dn.toISOString(), fim: fim.toISOString() };
+    }
+    return { inicio: new Date(d0 + 'T08:00:00').toISOString(), fim: new Date(d0 + 'T20:00:00').toISOString() };
+  }
+  function turnosDoCoringa(nome, excluirId) {
+    return _db.Eventos.filter(function (e) {
+      return e.tipo === 'turno_coringa' && e.pessoa === nome && e.id !== excluirId;
+    }).map(function (e) { return { id: e.id, plantao: e.plantao || '', inicio: e.inicio, fim: e.fim, obs: e.obs || '' }; })
+      .sort(function (a, b) { return new Date(a.inicio) - new Date(b.inicio); });
+  }
+  /**
+   * Linha do tempo de uma coringa: cada turno + até quando deveria descansar
+   * (proteção do ciclo do plantão que fez) + se o turno seguinte fura isso.
+   */
+  function linhaDoCoringa(nome, incluirExtra) {
+    var cfg = rotacaoConfig();
+    var lst = turnosDoCoringa(nome).slice();
+    if (incluirExtra && incluirExtra.pessoa === nome) {
+      lst.push({ id: incluirExtra.id || '__tmp__', plantao: incluirExtra.plantao || '',
+        inicio: incluirExtra.inicio, fim: incluirExtra.fim, obs: incluirExtra.obs || '' });
+      lst.sort(function (a, b) { return new Date(a.inicio) - new Date(b.inicio); });
+    }
+    return lst.map(function (t, i) {
+      var protegidoAte = null;
+      if (t.plantao) {
+        var est = R.estadoEm(t.plantao, new Date(new Date(t.fim).getTime() + 60000), cfg);
+        protegidoAte = est && est.fimProtecao ? est.fimProtecao : new Date(t.fim);
+      } else {
+        protegidoAte = new Date(new Date(t.fim).getTime() + 72 * 3600000); // sem plantão: assume 72h
+      }
+      var prox = lst[i + 1];
+      var quebra = null;
+      if (prox && new Date(prox.inicio) < new Date(protegidoAte)) {
+        var horasPerdidas = (new Date(protegidoAte) - new Date(prox.inicio)) / 3600000;
+        quebra = {
+          coringa: nome, turnoAnterior: t.id, turnoSeguinte: prox.id,
+          plantaoAnterior: t.plantao, plantaoSeguinte: prox.plantao,
+          protegidoAte: protegidoAte, proximoInicio: prox.inicio,
+          horasPerdidas: r2(horasPerdidas),
+          creditoFolga: r2(horasPerdidas * (Number(cfg.multFolgaPerdida) || 1))
+        };
+      }
+      return {
+        id: t.id, plantao: t.plantao, inicio: t.inicio, fim: t.fim, obs: t.obs,
+        parte: new Date(t.inicio).getHours() < 12 ? 'diurno' : 'noturno',
+        protegidoAte: protegidoAte, quebra: quebra
+      };
+    });
+  }
+  // avalia um turno_coringa que se quer salvar; devolve a quebra que ELE causa
+  function avaliarTurnoCoringa(reg) {
+    var linha = linhaDoCoringa(reg.pessoa, reg);
+    for (var i = 0; i < linha.length; i++) {
+      if (linha[i].quebra && (linha[i].quebra.turnoSeguinte === (reg.id || '__tmp__'))) return linha[i].quebra;
+    }
+    return null;
+  }
+
   function eventosCobrindo(dia, tipos, excluirId) {
     return _db.Eventos.filter(function (e) {
       return e.id !== excluirId && tipos.indexOf(e.tipo) >= 0 && cobreDia(e.inicio, e.fim, dia);
@@ -573,9 +639,9 @@
   }
 
   // ─── Eventos ──────────────────────────────────────────────────────────────
-  var CAMPOS_EVT = ['id', 'tipo', 'pessoa', 'substituto', 'inicio', 'fim', 'irregular', 'nivel', 'obs',
+  var CAMPOS_EVT = ['id', 'tipo', 'pessoa', 'substituto', 'plantao', 'inicio', 'fim', 'irregular', 'nivel', 'obs',
                     'situacao', 'justificativa', 'decidido_por'];
-  var TIPOS_EVT = ['ferias', 'licenca_medica', 'folga_abatendo_banco', 'troca',
+  var TIPOS_EVT = ['ferias', 'licenca_medica', 'folga_abatendo_banco', 'troca', 'turno_coringa',
                    'convocacao', 'sobreaviso_escalado', 'sobreaviso_acionado'];
 
   function eventos() {
@@ -613,9 +679,25 @@
       reg.nivel = avaliacao.nivel;
     }
 
+    var quebraTurno = null;
+    if (reg.tipo === 'turno_coringa') {
+      var fc = funcionarioPorNome(reg.pessoa);
+      if (!fc || (fc.regime !== 'coringa' && fc.regime !== 'expediente'))
+        throw new Error('Turno avulso é só para coringa ou expediente.');
+      quebraTurno = avaliarTurnoCoringa(reg);
+      reg.nivel = quebraTurno ? 'bloqueado' : 'livre';
+    }
+
     removerLancamentosDoEvento(reg.id);
     var impacto = aplicarImpacto(reg);
     reg.irregular = impacto && impacto.irregular ? 'sim' : 'nao';
+
+    if (quebraTurno) {
+      reg.irregular = 'sim';
+      if (dados.assumirQuebra && quebraTurno.creditoFolga > 0) {
+        lancar(reg.pessoa, 'entrada', quebraTurno.creditoFolga, 'folga_perdida', reg.id, reg.inicio);
+      }
+    }
 
     // Quebra de carga horária da coringa: só lança no banco se o líder assumir.
     var quebras = (avaliacao && avaliacao.quebraCarga) || [];
@@ -635,7 +717,8 @@
     return {
       id: reg.id, irregular: reg.irregular === 'sim', nivel: reg.nivel || '',
       impacto: impacto, avaliacao: avaliacao,
-      quebraCarga: quebras, quebraAssumida: !!(quebras.length && dados.assumirQuebra)
+      quebraCarga: quebras, quebraAssumida: !!(quebras.length && dados.assumirQuebra),
+      quebraTurno: quebraTurno, quebraTurnoAssumida: !!(quebraTurno && dados.assumirQuebra)
     };
   }
 
@@ -1095,6 +1178,7 @@
     plantoes: plantoes, coringas: coringas, parceiroDeDupla: parceiroDeDupla,
     diasFeriasDe: diasFeriasDe, feriasConsumidas: feriasConsumidas, saldoFerias: saldoFerias,
     avaliarFerias: avaliarFerias, proximaJanelaLivre: proximaJanelaLivre, avaliarCoberturas: avaliarCoberturas,
+    linhaDoCoringa: linhaDoCoringa, turnosDoCoringa: turnosDoCoringa, turnoIso: _turnoIso,
     eventos: eventos, eventosVisiveis: eventosVisiveis, salvarEvento: salvarEvento, removerEvento: removerEvento,
     decidirFerias: decidirFerias, feriasPendentes: feriasPendentes,
     bancoHoras: bancoHoras, bancoHorasVisivel: bancoHorasVisivel, ajusteManual: ajusteManual,
