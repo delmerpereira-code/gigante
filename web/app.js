@@ -135,7 +135,7 @@
     var subs = [];
     if (eu) subs.push({ investigador: 'Investigador', delegado: 'Delegado', diretor: 'Diretor', administrador: 'Administrador' }[eu.cargo] || eu.cargo);
     if (eu && eu.plantao) subs.push(eu.plantao);
-    if (lider) subs.push('líder');
+    if (eu ? eu.lider === 'sim' : lider) subs.push('líder');
     $('home-papel').textContent = subs.join(' · ');
     var fb = $('home-foto');
     fb.innerHTML = (eu && eu.foto) ? '<img src="' + eu.foto + '">' : (nome.charAt(0));
