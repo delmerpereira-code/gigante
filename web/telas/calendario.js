@@ -150,8 +150,63 @@
         mk += '<i class="mk ' + m.c + extra + (solic ? ' pend' : '') + '">' + m.s + (solic ? '?' : '') + '</i>';
         tit.push((solic ? 'solicitação de ' : '') + e.tipo + (e.obs ? ' ' + e.obs : ''));
       });
-      return '<td class="c ' + base + (ausente ? ' aus' : '') + '" title="' + A.esc(tit.join(' | ')) + '">' + mk + '</td>';
+      return '<td class="c ' + base + (ausente ? ' aus' : '') + '" data-p="' + A.esc(p.nome_curto) +
+        '" data-d="' + dia + '" title="' + A.esc(tit.join(' | ')) + '">' + mk + '</td>';
     }
+
+    wrap.addEventListener('click', function (ev) {
+      var td = ev.target.closest && ev.target.closest('td.c');
+      if (!td || !td.getAttribute('data-p')) return;
+      detalheDia(td.getAttribute('data-p'), +td.getAttribute('data-d'));
+    });
+
+    function detalheDia(nome, dia) {
+      var f = S.funcionarioPorNome(nome) || {};
+      var C = cfg(), diaIso = ano + '-' + ('0' + (mes + 1)).slice(-2) + '-' + ('0' + dia).slice(-2);
+      var linhas = [];
+
+      if (f.regime === 'plantao' && f.plantao) {
+        var ff = R.fase(f.plantao, new Date(ano, mes, dia), C);
+        linhas.push('<b>' + f.plantao + '</b> — ' + (ff === 0 ? '1º turno (08–20)' : ff === 1 ? '2º turno (20–08)' : ff === 2 ? 'início da folga' : 'folga'));
+      }
+      S.eventos().forEach(function (e) {
+        if (e.tipo === 'ferias' || e.tipo === 'licenca_medica') {
+          if (e.situacao === 'rejeitada') return;
+          var d0 = String(e.inicio).slice(0, 10), d1 = String(e.fim).slice(0, 10);
+          if (e.pessoa === nome && d0 <= diaIso && diaIso <= d1) {
+            linhas.push((e.tipo === 'ferias' ? 'Férias' : 'Licença') + ' ' + d0.split('-').reverse().join('/') + '–' + d1.split('-').reverse().join('/') +
+              (e.situacao ? ' · ' + e.situacao : '') + (e.substituto ? ' · coberto por ' + A.esc(e.substituto) : '') + ' <span class="muted">(tela Férias)</span>');
+          }
+          if (e.substituto === nome && d0 <= diaIso && diaIso <= d1) {
+            var alvo = S.funcionarioPorNome(e.pessoa) || {};
+            linhas.push('Cobre <b>' + A.esc(e.pessoa) + '</b> (' + (alvo.plantao || '—') + ' · ' + (e.tipo === 'ferias' ? 'férias' : 'licença') + ') <span class="muted">(tela Férias)</span>');
+          }
+        }
+        if (e.tipo === 'turno_coringa' && e.pessoa === nome && isoLocal(e.inicio) === diaIso) {
+          var not = new Date(e.inicio).getHours() >= 12;
+          linhas.push('<span class="turno-avulso" data-id="' + e.id + '">Turno avulso <b>' + A.esc(e.plantao || '?') + '</b> · ' +
+            (not ? 'noturno 20–08' : 'diurno 08–20') + (e.irregular === 'sim' ? ' · <span style="color:var(--danger)">quebra 120h</span>' : '') +
+            (e.obs ? ' · ' + A.esc(e.obs) : '') + ' — <button class="btn pequeno dng" data-del="' + e.id + '">excluir</button></span>');
+        }
+        if ((e.tipo === 'convocacao' || e.tipo === 'sobreaviso_escalado' || e.tipo === 'sobreaviso_acionado') &&
+            e.pessoa === nome && isoLocal(e.inicio) === diaIso) {
+          linhas.push(e.tipo.replace('_', ' ') + ' <span class="muted">(tela Eventos)</span>');
+        }
+      });
+
+      var m = A.abrirModal('<h2>' + A.esc(nome) + ' · ' + dia + '/' + ('0' + (mes + 1)).slice(-2) + '</h2>' +
+        (linhas.length ? '<ul class="lista-alertas">' + linhas.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul>'
+          : '<div class="muted small">Nada marcado nesse dia.</div>') +
+        '<div class="modal-acoes"><button class="btn sec" id="dd-x">Fechar</button></div>');
+      m.querySelector('#dd-x').addEventListener('click', A.fecharModal);
+      m.querySelectorAll('[data-del]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!confirm('Excluir este turno avulso?')) return;
+          Promise.resolve(S.removerEvento(b.getAttribute('data-del'))).then(function () { A.fecharModal(); draw(); });
+        });
+      });
+    }
+
     draw();
   }
 
