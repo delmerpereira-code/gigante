@@ -37,12 +37,44 @@ a { color: var(--accent); }
 .tela { display: none; position: fixed; inset: 0; flex-direction: column; }
 .tela.ativa { display: flex; }
 
-/* Desktop: mantém o formato de celular, centralizado, com fundo atrás. */
-@media (min-width: 680px) {
+/* ── Desktop: aproveita a largura da tela ──────────────────────────────── */
+@media (min-width: 900px) {
   body { background: #cfe0dd; }
   .tela {
     inset: 0 auto 0 50%; transform: translateX(-50%);
-    width: 100%; max-width: 460px;
+    width: 100%; max-width: 1120px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 12px 60px rgba(0,0,0,.18);
+  }
+  .corpo { padding: 22px 30px; }
+
+  /* forms, cartões soltos e semáforo: coluna de leitura centralizada */
+  #mod-corpo > .card:not(.cal-wrap),
+  #mod-corpo > .form,
+  #mod-corpo > h3,
+  #mod-corpo > .sem,
+  #mod-corpo > .vazio,
+  #tela-home .home-sec { max-width: 780px; margin-left: auto; margin-right: auto; }
+
+  /* Escala: dias em grade em vez de uma coluna só */
+  .lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+           gap: 12px; align-items: start; max-width: none; }
+  .lista > .btn, .lista > .mes-divisor { grid-column: 1 / -1; }
+  .mes-divisor { position: static; }
+
+  /* Calendário: ocupa a largura toda, sem rolagem lateral */
+  .cal-wrap { overflow-x: visible; }
+  table.cal { width: 100%; table-layout: fixed; }
+  table.cal .cal-nome { width: 130px; min-width: 0; }
+  table.cal th.d, table.cal td.c { width: auto; }
+  table.cal td.c { height: 26px; }
+}
+
+/* Telas médias (tablet / janela estreita): coluna de celular centralizada */
+@media (min-width: 620px) and (max-width: 899.98px) {
+  body { background: #cfe0dd; }
+  .tela {
+    inset: 0 auto 0 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
     box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 8px 40px rgba(0,0,0,.14);
   }
 }
