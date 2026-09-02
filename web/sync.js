@@ -279,7 +279,8 @@
       return pull().then(function () {
         var eu = Sync.eu();
         if (eu) {
-          Store.setVerComo(eu.lider === 'sim' ? 'Lider' : eu.nome_curto);
+          var gestao = eu.lider === 'sim' || eu.cargo === 'administrador';
+          Store.setVerComo(gestao ? 'Lider' : eu.nome_curto);
         }
         return { logado: true, modo: 'db', eu: eu, semVinculo: !eu };
       }).catch(function (e) {
