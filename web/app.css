@@ -37,6 +37,16 @@ a { color: var(--accent); }
 .tela { display: none; position: fixed; inset: 0; flex-direction: column; }
 .tela.ativa { display: flex; }
 
+/* Desktop: mantém o formato de celular, centralizado, com fundo atrás. */
+@media (min-width: 680px) {
+  body { background: #cfe0dd; }
+  .tela {
+    inset: 0 auto 0 50%; transform: translateX(-50%);
+    width: 100%; max-width: 460px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 8px 40px rgba(0,0,0,.14);
+  }
+}
+
 /* ── header ────────────────────────────────────────────────────────────── */
 .hd {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
