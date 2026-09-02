@@ -211,23 +211,28 @@
   }
 
   function renderAlertas(box, evs, total) {
-    var itens = [];
-    var corAtivas = S.funcionarios().filter(function (x) { return x.regime === 'coringa' && x.status !== 'afastado'; }).length;
-    for (var d = 1; d <= total; d++) {
-      var tit = 0, cor = 0;
-      evs.forEach(function (e) {
-        if (!cobreDia(e.inicio, e.fim, d)) return;
-        var g = S.funcionarioPorNome(e.pessoa); if (!g) return;
-        if ((e.tipo === 'ferias' || e.tipo === 'licenca_medica') && g.regime === 'plantao') tit++;
-        if (e.tipo === 'ferias' && g.regime === 'coringa') cor++;
-      });
-      var disp = corAtivas - cor;
-      if (tit > disp) itens.push('Dia ' + d + ': ' + tit + ' fora, só ' + disp + ' coringa(s) — cobertura insuficiente.');
-      else if (tit > 0 && tit === disp) itens.push('Dia ' + d + ': sobreaviso descoberto.');
-      else if (tit >= 2) itens.push('Dia ' + d + ': ' + tit + ' coberturas simultâneas.');
-    }
-    box.innerHTML = '<h3>Alertas do mês</h3><ul class="lista-alertas">' +
-      (itens.length ? itens.map(function (t) { return '<li>' + t + '</li>'; }).join('') : '<li class="ok">Sem alertas.</li>') + '</ul>';
+    var mesIni = ano + '-' + ('0' + (mes + 1)).slice(-2) + '-01';
+    var mesFim = ano + '-' + ('0' + (mes + 1)).slice(-2) + '-' + ('0' + total).slice(-2);
+    var lst = evs.filter(function (e) {
+      if (e.tipo !== 'ferias' && e.tipo !== 'licenca_medica') return false;
+      if (e.situacao === 'rejeitada') return false;
+      var d0 = String(e.inicio).slice(0, 10), d1 = String(e.fim).slice(0, 10);
+      return d0 <= mesFim && d1 >= mesIni;   // sobrepõe o mês
+    }).sort(function (a, b) { return String(a.inicio).localeCompare(String(b.inicio)); });
+
+    var linhas = lst.map(function (e) {
+      var g = S.funcionarioPorNome(e.pessoa) || {};
+      var d0 = String(e.inicio).slice(0, 10).split('-'), d1 = String(e.fim).slice(0, 10).split('-');
+      var per = d0[2] + '/' + d0[1] + ' a ' + d1[2] + '/' + d1[1];
+      var tag = e.tipo === 'ferias'
+        ? (e.situacao === 'solicitada' ? '<span class="tag a">solicitada</span>' : '<span class="tag v">férias</span>')
+        : '<span class="tag" style="background:#ef6c00;color:#fff">licença</span>';
+      return '<li><b>' + A.esc(e.pessoa) + '</b> · ' + (g.plantao || g.regime || '') + ' — ' + per + ' ' + tag +
+        (e.substituto ? '<br><span class="muted small">cobre: ' + A.esc(e.substituto) + '</span>'
+          : (e.situacao !== 'solicitada' ? '<br><span class="muted small">cobertura a definir</span>' : '')) + '</li>';
+    });
+    box.innerHTML = '<h3>Férias e licenças em ' + MESES[mes] + '</h3><ul class="lista-alertas">' +
+      (linhas.length ? linhas.join('') : '<li class="ok">Ninguém de férias ou licença neste mês.</li>') + '</ul>';
   }
 
   A.registrarTela('calendario', { titulo: 'CALENDÁRIO', icone: '📅', desc: 'Visão geral do mês', acesso: 'todos', montar: montar });
