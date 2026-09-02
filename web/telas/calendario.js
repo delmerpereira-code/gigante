@@ -37,7 +37,7 @@
 
   function eventosDoMes() {
     var pa = S.papelAtual();
-    var PUB = { ferias: 1, licenca_medica: 1, sobreaviso_escalado: 1, sobreaviso_acionado: 1 };
+    var PUB = { ferias: 1, licenca_medica: 1, sobreaviso_escalado: 1, sobreaviso_acionado: 1, turno_coringa: 1 };
     var evs = S.eventos().filter(function (e) { return PUB[e.tipo] || pa.tipo === 'lider' || e.pessoa === pa.nome; });
     (S.permutas ? S.permutas() : []).forEach(function (p) {
       if (p.estado !== 'confirmada' && p.estado !== 'concluida') return;
@@ -123,6 +123,17 @@
         mk += '<i class="mk cob">' + A.esc(cobrindo.replace('PL ', '')) + '</i>';
         tit.push('cobre ' + cobrindo + (fEf === 0 ? ' · 1º turno' : ' · 2º turno'));
       }
+      // turnos avulsos de coringa/expediente (tela Coringas)
+      var diaIso = ano + '-' + ('0' + (mes + 1)).slice(-2) + '-' + ('0' + dia).slice(-2);
+      evs.forEach(function (e) {
+        if (e.tipo !== 'turno_coringa' || e.pessoa !== p.nome_curto) return;
+        if (String(e.inicio).slice(0, 10) !== diaIso) return;
+        var noturno = new Date(e.inicio).getHours() >= 12;
+        if (!base) base = noturno ? 't2' : 't1';
+        mk += '<i class="mk cob' + (e.irregular === 'sim' ? ' pend' : '') + '">' + A.esc((e.plantao || '?').replace('PL ', '')) + '</i>';
+        tit.push('turno avulso ' + (e.plantao || '') + (noturno ? ' · noturno' : ' · diurno') +
+          (e.irregular === 'sim' ? ' · QUEBRA 120h' : '') + (e.obs ? ' · ' + e.obs : ''));
+      });
       evs.forEach(function (e) {
         if (e.pessoa !== p.nome_curto || !MARCA[e.tipo] || !cobreDia(e.inicio, e.fim, dia)) return;
         if (e.situacao === 'rejeitada') return;
