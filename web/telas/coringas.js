@@ -116,7 +116,8 @@
           var row = A.h('div', { class: 'card', style: 'margin-top:6px' });
           row.innerHTML =
             '<div class="card-linha"><span class="pl-pill ' + (CLS[x.plantao] || '') + '">' + (x.plantao || '—') + '</span> ' +
-            fmtDT(x.inicio) + ' → ' + fmtDT(x.fim) + ' · ' + x.parte + (x.obs ? ' · ' + A.esc(x.obs) : '') + '</div>' +
+            fmtDT(x.inicio) + ' → ' + fmtDT(x.fim) + ' · ' + x.parte +
+            (x.substituto ? ' · <b>cobre ' + A.esc(x.substituto) + '</b>' : (x.obs ? ' · ' + A.esc(x.obs) : '')) + '</div>' +
             '<div class="card-sub' + (x.quebra ? '' : ' muted') + '">' +
               (x.quebra
                 ? '🔴 próximo turno em ' + fmtDT(x.quebra.proximoInicio) + ' — devia descansar até ' + fmtDT(x.protegidoAte) +

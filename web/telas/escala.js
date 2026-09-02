@@ -36,7 +36,7 @@
       if (!parte) return true;
       var diurno = new Date(e.inicio).getHours() < 12;
       return parte === 'diurno' ? diurno : !diurno;
-    }).map(function (e) { return e.pessoa; });
+    }).map(function (e) { return { pessoa: e.pessoa, substituto: e.substituto || '' }; });
   }
   // Nomes na escala do dia, já trocando quem está de férias/licença pela
   // coringa que cobre (campo "substituto") e somando os turnos avulsos de coringa.
@@ -55,7 +55,8 @@
       return '<span class="ausente">' + A.esc(nome) + '</span><span class="cobre-de"> (' + mot + ' · sem cobertura)</span>';
     });
     coringasNoTurno(pl, d, parte).forEach(function (c) {
-      linha.push('<span class="cobre">' + A.esc(c) + '</span><span class="cobre-de"> (coringa avulsa)</span>');
+      linha.push('<span class="cobre">' + A.esc(c.pessoa) + '</span><span class="cobre-de"> (' +
+        (c.substituto ? 'cobre ' + A.esc(c.substituto) : 'reforço') + ')</span>');
     });
     return linha.join(' + ');
   }

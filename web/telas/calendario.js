@@ -132,8 +132,8 @@
         var noturno = new Date(e.inicio).getHours() >= 12;
         if (!base) base = noturno ? 't2' : 't1';
         mk += '<i class="mk cob' + (e.irregular === 'sim' ? ' pend' : '') + '">' + A.esc((e.plantao || '?').replace('PL ', '')) + '</i>';
-        tit.push('turno avulso ' + (e.plantao || '') + (noturno ? ' · noturno' : ' · diurno') +
-          (e.irregular === 'sim' ? ' · QUEBRA 120h' : '') + (e.obs ? ' · ' + e.obs : ''));
+        tit.push((e.substituto ? e.substituto + ' coberto: ' : 'turno avulso ') + (e.plantao || '') + (noturno ? ' · noturno' : ' · diurno') +
+          (e.irregular === 'sim' ? ' · QUEBRA 120h' : ''));
       });
       evs.forEach(function (e) {
         if (e.pessoa !== p.nome_curto || !MARCA[e.tipo] || !cobreDia(e.inicio, e.fim, dia)) return;
@@ -184,9 +184,11 @@
         }
         if (e.tipo === 'turno_coringa' && e.pessoa === nome && isoLocal(e.inicio) === diaIso) {
           var not = new Date(e.inicio).getHours() >= 12;
-          linhas.push('<span class="turno-avulso" data-id="' + e.id + '">Turno avulso <b>' + A.esc(e.plantao || '?') + '</b> · ' +
-            (not ? 'noturno 20–08' : 'diurno 08–20') + (e.irregular === 'sim' ? ' · <span style="color:var(--danger)">quebra 120h</span>' : '') +
-            (e.obs ? ' · ' + A.esc(e.obs) : '') + ' — <button class="btn pequeno dng" data-del="' + e.id + '">excluir</button></span>');
+          linhas.push('<span class="turno-avulso" data-id="' + e.id + '"><b>' + A.esc(e.plantao || '?') + '</b> · ' +
+            (not ? '2º turno (20–08)' : '1º turno (08–20)') +
+            (e.substituto ? ' · cobre <b>' + A.esc(e.substituto) + '</b>' : ' · reforço') +
+            (e.irregular === 'sim' ? ' · <span style="color:var(--danger)">quebra 120h</span>' : '') +
+            ' — <button class="btn pequeno dng" data-del="' + e.id + '">excluir</button></span>');
         }
         if ((e.tipo === 'convocacao' || e.tipo === 'sobreaviso_escalado' || e.tipo === 'sobreaviso_acionado') &&
             e.pessoa === nome && isoLocal(e.inicio) === diaIso) {
@@ -194,41 +196,44 @@
         }
       });
 
-      // ── líder: turno descoberto → cobrir com um coringa, aqui mesmo ─────────
-      var cobrirHtml = '', descoberto = null;
-      if (S.podeGerirFerias() && f.regime === 'plantao' && f.plantao) {
-        var faseP = R.fase(f.plantao, new Date(ano, mes, dia), C);
-        if (faseP === 0 || faseP === 1) {
-          var parteP = faseP === 0 ? 'diurno' : 'noturno';
-          var ausE = S.eventos().filter(function (e) {
-            if ((e.tipo !== 'ferias' && e.tipo !== 'licenca_medica') || e.situacao === 'rejeitada' || e.situacao === 'solicitada') return false;
-            var a0 = String(e.inicio).slice(0, 10), a1 = String(e.fim).slice(0, 10);
-            return e.pessoa === nome && a0 <= diaIso && diaIso <= a1;
-          })[0];
-          var jaCob = (ausE && ausE.substituto) || S.eventos().some(function (e) {
-            return e.tipo === 'turno_coringa' && e.plantao === f.plantao && isoLocal(e.inicio) === diaIso &&
-              (new Date(e.inicio).getHours() >= 12) === (parteP === 'noturno');
+      // ── líder clicou numa coringa/expediente: registrar cobertura do dia ────
+      var addHtml = '';
+      var ehCoringa = f.regime === 'coringa' || f.regime === 'expediente';
+      if (S.podeGerirFerias() && ehCoringa) {
+        var td = R.turnosDoDia(new Date(ano, mes, dia), C);
+        var opcoes = [['diurno', td.turno1, '1º turno (08–20)'], ['noturno', td.turno2, '2º turno (20–08)']];
+        var blocos = opcoes.map(function (o, idx) {
+          var parte = o[0], pl = o[1], rot = o[2]; if (!pl) return '';
+          var jaTem = S.eventos().some(function (e) {
+            return e.tipo === 'turno_coringa' && e.pessoa === nome && e.plantao === pl && isoLocal(e.inicio) === diaIso &&
+              (new Date(e.inicio).getHours() >= 12) === (parte === 'noturno');
           });
-          if (ausE && !jaCob) {
-            descoberto = { parte: parteP, motivo: ausE.tipo === 'ferias' ? 'férias' : 'licença' };
-            var cors = S.equipe().filter(function (x) { return (x.regime === 'coringa' || x.regime === 'expediente') && x.status !== 'afastado'; });
-            cobrirHtml = '<div class="dd-add"><h3>Turno descoberto</h3>' +
-              '<div class="muted small">' + f.plantao + ' · ' + (parteP === 'diurno' ? '1º turno (08–20)' : '2º turno (20–08)') +
-              ' — ' + A.esc(nome) + ' de ' + descoberto.motivo + '</div>' +
-              (cors.length
-                ? '<div class="campo" style="margin:8px 0"><select id="dd-cor">' +
-                    cors.map(function (x) { return '<option value="' + A.esc(x.nome_curto) + '">' + A.esc(x.nome_curto) + ' · ' + x.regime + '</option>'; }).join('') +
-                  '</select></div><button class="btn pequeno pri" id="dd-cobrir">Cobrir esse turno</button>'
-                : '<div class="muted small" style="margin-top:6px">Cadastre um coringa/expediente primeiro.</div>') +
-              '</div>';
-          }
-        }
+          if (jaTem) return '<div class="dd-cob"><b>' + pl + '</b> · ' + rot + ' <span class="tag v">já lançado</span></div>';
+          var tits = S.plantoes().filter(function (x) { return x.codigo === pl; })[0] || {};
+          var pessoasPl = [tits.pessoa_1, tits.pessoa_2].filter(Boolean);
+          var ausente = pessoasPl.filter(function (nm) {
+            return S.eventos().some(function (e) {
+              if ((e.tipo !== 'ferias' && e.tipo !== 'licenca_medica') || e.situacao === 'rejeitada' || e.situacao === 'solicitada') return false;
+              var a0 = String(e.inicio).slice(0, 10), a1 = String(e.fim).slice(0, 10);
+              return e.pessoa === nm && a0 <= diaIso && diaIso <= a1;
+            });
+          })[0] || '';
+          var sel = '<select id="dd-sub' + idx + '"><option value="">— reforço (ninguém) —</option>' +
+            pessoasPl.map(function (nm) { return '<option value="' + A.esc(nm) + '"' + (nm === ausente ? ' selected' : '') + '>' + A.esc(nm) + (nm === ausente ? ' (ausente)' : '') + '</option>'; }).join('') +
+            '</select>';
+          return '<div class="dd-cob' + (ausente ? ' gap' : '') + '"><div><b>' + pl + '</b> · ' + rot +
+            (ausente ? ' · <span class="tag r">descoberto</span>' : '') + '</div>' +
+            '<div class="campo" style="margin:6px 0 0"><label>Quem será coberto</label>' + sel + '</div>' +
+            '<button class="btn pequeno pri" data-add="' + parte + '|' + pl + '" style="margin-top:6px">' +
+            A.esc(nome.split(' ')[0]) + ' cobre este turno</button></div>';
+        }).join('');
+        if (blocos) addHtml = '<div class="dd-add"><h3>Lançar cobertura de ' + A.esc(nome.split(' ')[0]) + ' em ' + dia + '/' + ('0' + (mes + 1)).slice(-2) + '</h3>' + blocos + '</div>';
       }
 
       var m = A.abrirModal('<h2>' + A.esc(nome) + ' · ' + dia + '/' + ('0' + (mes + 1)).slice(-2) + '</h2>' +
         (linhas.length ? '<ul class="lista-alertas">' + linhas.map(function (l) { return '<li>' + l + '</li>'; }).join('') + '</ul>'
-          : '<div class="muted small">Nada marcado nesse dia.</div>') +
-        cobrirHtml +
+          : (addHtml ? '' : '<div class="muted small">Nada marcado nesse dia.</div>')) +
+        addHtml +
         '<div class="modal-acoes"><button class="btn sec" id="dd-x">Fechar</button></div>');
       m.querySelector('#dd-x').addEventListener('click', A.fecharModal);
       m.querySelectorAll('[data-del]').forEach(function (b) {
@@ -237,26 +242,26 @@
           Promise.resolve(S.removerEvento(b.getAttribute('data-del'))).then(function () { A.fecharModal(); draw(); });
         });
       });
-      var cb = m.querySelector('#dd-cobrir');
-      if (cb) cb.addEventListener('click', function () {
-        var coringa = m.querySelector('#dd-cor').value;
-        var t = S.turnoIso(diaIso, descoberto.parte);
-        var salvar = function (assumir) {
-          return S.salvarEvento({ tipo: 'turno_coringa', pessoa: coringa, plantao: f.plantao,
-            inicio: t.inicio, fim: t.fim, obs: 'cobre ' + nome, assumirQuebra: !!assumir });
-        };
-        var r = salvar(false);
-        Promise.resolve(r).then(function () {
-          var res = r || {};
-          if (res.quebraTurno && !res.quebraTurnoAssumida &&
-              confirm('Esse turno fura o descanso de 120h de ' + coringa + ' (' + res.quebraTurno.horasPerdidas +
-                ' h a menos). Assumir a quebra e lançar no banco?')) {
-            S.salvarEvento({ id: res.id, tipo: 'turno_coringa', pessoa: coringa, plantao: f.plantao,
-              inicio: t.inicio, fim: t.fim, obs: 'cobre ' + nome, assumirQuebra: true });
-          }
-          A.fecharModal(); draw();
-          A.toast(coringa + ' cobrindo ' + f.plantao + ' · ' + descoberto.parte, 'sucesso');
-        }).catch(function (e) { A.toast(e.message || String(e), 'erro'); });
+      m.querySelectorAll('[data-add]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var pr = b.getAttribute('data-add').split('|'), parte = pr[0], pl = pr[1];
+          var subSel = b.closest('.dd-cob') ? b.closest('.dd-cob').querySelector('select') : null;
+          var coberto = subSel ? subSel.value : '';
+          var t = S.turnoIso(diaIso, parte);
+          var payload = { tipo: 'turno_coringa', pessoa: nome, plantao: pl, substituto: coberto,
+            inicio: t.inicio, fim: t.fim, obs: coberto ? 'cobre ' + coberto : 'reforço' };
+          var r = S.salvarEvento(payload);
+          Promise.resolve(r).then(function () {
+            var res = r || {};
+            if (res.quebraTurno && !res.quebraTurnoAssumida &&
+                confirm('Esse turno fura o descanso de 120h de ' + nome + ' (' + res.quebraTurno.horasPerdidas +
+                  ' h a menos). Assumir a quebra e lançar no banco?')) {
+              payload.id = res.id; payload.assumirQuebra = true; S.salvarEvento(payload);
+            }
+            A.fecharModal(); draw();
+            A.toast(nome + ' cobrindo ' + pl + (coberto ? ' (' + coberto + ')' : ''), 'sucesso');
+          }).catch(function (e) { A.toast(e.message || String(e), 'erro'); });
+        });
       });
     }
 

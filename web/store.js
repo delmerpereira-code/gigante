@@ -569,7 +569,7 @@
   function turnosDoCoringa(nome, excluirId) {
     return _db.Eventos.filter(function (e) {
       return e.tipo === 'turno_coringa' && e.pessoa === nome && e.id !== excluirId;
-    }).map(function (e) { return { id: e.id, plantao: e.plantao || '', inicio: e.inicio, fim: e.fim, obs: e.obs || '' }; })
+    }).map(function (e) { return { id: e.id, plantao: e.plantao || '', inicio: e.inicio, fim: e.fim, obs: e.obs || '', substituto: e.substituto || '' }; })
       .sort(function (a, b) { return new Date(a.inicio) - new Date(b.inicio); });
   }
   /**
@@ -617,7 +617,7 @@
         };
       }
       return {
-        id: t.id, plantao: t.plantao, inicio: t.inicio, fim: t.fim, obs: t.obs,
+        id: t.id, plantao: t.plantao, inicio: t.inicio, fim: t.fim, obs: t.obs, substituto: t.substituto || '',
         parte: new Date(t.inicio).getHours() < 12 ? 'diurno' : 'noturno',
         protegidoAte: protegidoAte, quebra: quebra
       };
