@@ -32,7 +32,7 @@
     var dia = iso(d);
     return S.eventos().filter(function (e) {
       if (e.tipo !== 'turno_coringa' || e.plantao !== pl) return false;
-      if (String(e.inicio).slice(0, 10) !== dia) return false;
+      if (iso(new Date(e.inicio)) !== dia) return false;
       if (!parte) return true;
       var diurno = new Date(e.inicio).getHours() < 12;
       return parte === 'diurno' ? diurno : !diurno;

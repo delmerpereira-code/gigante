@@ -12,6 +12,7 @@
     convocacao: { c: 'conv', s: 'C' }, troca: { c: 'perm', s: 'P' }
   };
   function cfg() { return S.rotacaoConfig(); }
+  function isoLocal(x) { var d = new Date(x); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function rank(f) {
     return f.regime === 'plantao' ? 0 : (f.regime === 'coringa' ? 1 : (f.regime === 'expediente' ? 2 : 3));
   }
@@ -127,7 +128,7 @@
       var diaIso = ano + '-' + ('0' + (mes + 1)).slice(-2) + '-' + ('0' + dia).slice(-2);
       evs.forEach(function (e) {
         if (e.tipo !== 'turno_coringa' || e.pessoa !== p.nome_curto) return;
-        if (String(e.inicio).slice(0, 10) !== diaIso) return;
+        if (isoLocal(e.inicio) !== diaIso) return;
         var noturno = new Date(e.inicio).getHours() >= 12;
         if (!base) base = noturno ? 't2' : 't1';
         mk += '<i class="mk cob' + (e.irregular === 'sim' ? ' pend' : '') + '">' + A.esc((e.plantao || '?').replace('PL ', '')) + '</i>';

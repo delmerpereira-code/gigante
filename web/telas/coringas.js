@@ -77,7 +77,8 @@
     }
     function editar(t) {
       editId = t.id; $('#c-pes').value = t.pessoa; $('#c-pl').value = t.plantao || ord[0];
-      $('#c-data').value = String(t.inicio).slice(0, 10);
+      var di = new Date(t.inicio);
+      $('#c-data').value = di.getFullYear() + '-' + ('0' + (di.getMonth() + 1)).slice(-2) + '-' + ('0' + di.getDate()).slice(-2);
       $('#c-parte').value = new Date(t.inicio).getHours() < 12 ? 'diurno' : 'noturno';
       $('#c-obs').value = t.obs || '';
       $('#c-tit').textContent = 'Editando turno'; $('#c-salvar').textContent = 'Salvar';
