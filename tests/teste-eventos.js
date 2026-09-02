@@ -130,6 +130,14 @@ checa('recusa turno_coringa para plantonista', (function () {
   catch (e) { return true; }
 })());
 
+// dia + noite do MESMO plantão/ciclo = plantão normal, NÃO é quebra
+Store.limparTudo(); Store.seedElencoExemplo(); Store.setConfig('ancora_rotacao', '2026-09-01');
+var pd = Store.turnoIso('2026-08-04', 'diurno');
+Store.salvarEvento({ tipo: 'turno_coringa', pessoa: 'Tainá', plantao: 'PL I', inicio: pd.inicio, fim: pd.fim });
+var pn = Store.turnoIso('2026-08-05', 'noturno');
+var rpar = Store.salvarEvento({ tipo: 'turno_coringa', pessoa: 'Tainá', plantao: 'PL I', inicio: pn.inicio, fim: pn.fim });
+checa('mesmo plantão dia+noite não é quebra', !rpar.quebraTurno, JSON.stringify(rpar.quebraTurno));
+
 // ── resultado ────────────────────────────────────────────────────────────
 console.log('\n' + ok + ' ok, ' + falhas + ' falha(s).');
 Store.limparTudo();

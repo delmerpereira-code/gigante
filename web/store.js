@@ -584,17 +584,29 @@
         inicio: incluirExtra.inicio, fim: incluirExtra.fim, obs: incluirExtra.obs || '' });
       lst.sort(function (a, b) { return new Date(a.inicio) - new Date(b.inicio); });
     }
+    function cicloDe(plantao, iso) {
+      if (!plantao) return null;
+      var e = R.estadoEm(plantao, new Date(iso), cfg);
+      return e ? +e.inicioCiclo : null;
+    }
     return lst.map(function (t, i) {
       var protegidoAte = null;
+      var meuCiclo = cicloDe(t.plantao, t.inicio);
       if (t.plantao) {
+        // proteção depois do turno: se for o 1º de um par que ela vai completar,
+        // a folga real é só depois do 2º turno (fim do ciclo, +120h).
         var est = R.estadoEm(t.plantao, new Date(new Date(t.fim).getTime() + 60000), cfg);
-        protegidoAte = est && est.fimProtecao ? est.fimProtecao : new Date(t.fim);
+        var fimFolga = new Date((meuCiclo || new Date(t.fim).getTime()) + 120 * 3600000);
+        protegidoAte = est && est.fimProtecao ? est.fimProtecao : fimFolga;
       } else {
         protegidoAte = new Date(new Date(t.fim).getTime() + 72 * 3600000); // sem plantão: assume 72h
       }
       var prox = lst[i + 1];
       var quebra = null;
-      if (prox && new Date(prox.inicio) < new Date(protegidoAte)) {
+      // 1º e 2º turno do MESMO plantão/ciclo = um plantão normal (dia + noite): não é quebra
+      var mesmaEscala = prox && t.plantao && prox.plantao === t.plantao &&
+        meuCiclo != null && cicloDe(prox.plantao, prox.inicio) === meuCiclo;
+      if (!mesmaEscala && prox && new Date(prox.inicio) < new Date(protegidoAte)) {
         var horasPerdidas = (new Date(protegidoAte) - new Date(prox.inicio)) / 3600000;
         quebra = {
           coringa: nome, turnoAnterior: t.id, turnoSeguinte: prox.id,
